@@ -10,6 +10,7 @@ const MAX_TOKEN_ITEMS: usize = 2_048;
 const MAX_GRAPH_NODES: usize = 64;
 const MAX_GRAPH_EDGES: usize = 96;
 const MAX_ACTIVE_TOOLS: usize = 24;
+const MAX_TOPOLOGY_CHANGES: usize = 12;
 
 #[wasm_bindgen]
 pub struct Engine {
@@ -76,7 +77,7 @@ pub struct AgentEvent {
     pub payload: Value,
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 struct State {
     run_id: Option<String>,
     phase: String,
@@ -90,6 +91,7 @@ struct State {
     log: Vec<LogItem>,
     tokens: Vec<TokenItem>,
     errors: Vec<String>,
+    topology: TopologyRuntime,
 }
 
 #[derive(Debug, Clone, Default, Serialize, PartialEq)]
@@ -106,6 +108,7 @@ pub struct Projection {
     pub log: Vec<LogItem>,
     pub tokens: Vec<TokenItem>,
     pub errors: Vec<String>,
+    pub topology: TopologyProjection,
 }
 
 #[derive(Debug, Clone, Default, Serialize, PartialEq)]
@@ -193,6 +196,100 @@ pub struct TokenItem {
     pub text: String,
 }
 
+#[derive(Debug, Clone, Default, Serialize, PartialEq)]
+pub struct TopologyProjection {
+    pub nodes: Vec<TopologyNode>,
+    pub edges: Vec<TopologyEdge>,
+    pub changes: Vec<TopologyChange>,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
+pub struct TopologyNode {
+    pub id: String,
+    pub label: String,
+    pub kind: String,
+    pub status: String,
+    pub x: f64,
+    pub y: f64,
+    pub last_seq: u64,
+    pub summary: String,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
+pub struct TopologyEdge {
+    pub source: String,
+    pub target: String,
+    pub status: String,
+    pub count: u64,
+    pub last_seq: u64,
+    pub label: String,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
+pub struct TopologyChange {
+    pub seq: u64,
+    pub component: String,
+    pub level: String,
+    pub message: String,
+}
+
+#[derive(Debug, Clone)]
+struct TopologyRuntime {
+    nodes: HashMap<String, TopologyNodeRuntime>,
+    edges: HashMap<String, TopologyEdgeRuntime>,
+    changes: Vec<TopologyChange>,
+}
+
+#[derive(Debug, Clone)]
+struct TopologyNodeRuntime {
+    id: String,
+    label: String,
+    kind: String,
+    x: f64,
+    y: f64,
+    last_seq: u64,
+    level: TopologyLevel,
+    summary: String,
+}
+
+#[derive(Debug, Clone)]
+struct TopologyEdgeRuntime {
+    source: String,
+    target: String,
+    count: u64,
+    last_seq: u64,
+    level: TopologyLevel,
+    label: String,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum TopologyLevel {
+    Idle,
+    Active,
+    Warning,
+    Failed,
+}
+
+impl Default for State {
+    fn default() -> Self {
+        State {
+            run_id: None,
+            phase: String::new(),
+            last_seq: 0,
+            totals: Totals::default(),
+            latency: Latency::default(),
+            active_tools: HashMap::new(),
+            retrievals: Vec::new(),
+            timeline: Vec::new(),
+            graph: Graph::default(),
+            log: Vec::new(),
+            tokens: Vec::new(),
+            errors: Vec::new(),
+            topology: TopologyRuntime::configured(),
+        }
+    }
+}
+
 impl State {
     fn ingest(&mut self, event: AgentEvent) {
         if self.run_id.as_deref() != Some(event.run_id.as_str()) {
@@ -239,6 +336,7 @@ impl State {
             log: self.log.clone(),
             tokens: self.tokens.clone(),
             errors: self.errors.clone(),
+            topology: self.topology.project(self.last_seq),
         }
     }
 
@@ -249,6 +347,12 @@ impl State {
             ..State::default()
         };
         self.ensure_node("agent", "Agent", "agent", 1.0);
+        self.topology.activate(
+            "agent",
+            eventless_change_seq(self.last_seq),
+            TopologyLevel::Active,
+            "new run started",
+        );
     }
 
     fn apply_thinking(&mut self, event: &AgentEvent) {
@@ -258,6 +362,17 @@ impl State {
         self.push_timeline(event, "cognition", message, 0.65);
         self.ensure_node("thinking", "Thinking", "state", 1.0);
         self.ensure_edge("agent", "thinking", 1.0);
+        self.topology
+            .activate("agent", event.seq, TopologyLevel::Active, "thinking");
+        self.topology
+            .activate("core", event.seq, TopologyLevel::Active, message);
+        self.topology.flow(
+            "agent",
+            "core",
+            event.seq,
+            TopologyLevel::Active,
+            "reasoning",
+        );
     }
 
     fn apply_retrieval(&mut self, event: &AgentEvent) {
@@ -278,6 +393,22 @@ impl State {
         let source_id = format!("retrieval:{source}");
         self.ensure_node(&source_id, source, "retrieval", score);
         self.ensure_edge("thinking", &source_id, score.max(0.2));
+        self.topology
+            .activate("retrieval", event.seq, TopologyLevel::Active, source);
+        self.topology.flow(
+            "agent",
+            "retrieval",
+            event.seq,
+            TopologyLevel::Active,
+            "query",
+        );
+        self.topology.flow(
+            "retrieval",
+            "core",
+            event.seq,
+            TopologyLevel::Active,
+            "trace",
+        );
     }
 
     fn apply_tool_call(&mut self, event: &AgentEvent) {
@@ -306,6 +437,14 @@ impl State {
         let tool_id = format!("tool:{id}");
         self.ensure_node(&tool_id, name, "tool", 1.0);
         self.ensure_edge("thinking", &tool_id, 0.8);
+        let level = if status == "failed" {
+            TopologyLevel::Failed
+        } else {
+            TopologyLevel::Active
+        };
+        self.topology.activate("tools", event.seq, level, name);
+        self.topology
+            .flow("core", "tools", event.seq, level, "tool call");
     }
 
     fn apply_retry(&mut self, event: &AgentEvent) {
@@ -316,6 +455,10 @@ impl State {
         self.push_timeline(event, "retry", reason, 1.0);
         self.ensure_node("retry", "Retry", "control", self.totals.retries as f64);
         self.ensure_edge("agent", "retry", 1.0);
+        self.topology
+            .activate("core", event.seq, TopologyLevel::Warning, reason);
+        self.topology
+            .flow("core", "tools", event.seq, TopologyLevel::Warning, "retry");
     }
 
     fn apply_failure(&mut self, event: &AgentEvent) {
@@ -327,6 +470,10 @@ impl State {
         self.push_timeline(event, "failure", message, 1.0);
         self.ensure_node("failure", "Failure", "error", self.totals.failures as f64);
         self.ensure_edge("agent", "failure", 1.0);
+        self.topology
+            .activate("tools", event.seq, TopologyLevel::Failed, message);
+        self.topology
+            .flow("tools", "core", event.seq, TopologyLevel::Failed, "failure");
     }
 
     fn apply_token(&mut self, event: &AgentEvent) {
@@ -345,6 +492,23 @@ impl State {
             self.totals.streamed_tokens as f64,
         );
         self.ensure_edge("thinking", "stream", 0.6);
+        self.topology
+            .activate("stream", event.seq, TopologyLevel::Active, "token stream");
+        self.topology.activate(
+            "browser",
+            event.seq,
+            TopologyLevel::Active,
+            "rendering projection",
+        );
+        self.topology
+            .flow("core", "stream", event.seq, TopologyLevel::Active, "tokens");
+        self.topology.flow(
+            "stream",
+            "browser",
+            event.seq,
+            TopologyLevel::Active,
+            "projection",
+        );
     }
 
     fn apply_usage(&mut self, event: &AgentEvent) {
@@ -353,6 +517,8 @@ impl State {
         self.totals.output_tokens =
             integer_field(&event.payload, "output_tokens").unwrap_or(self.totals.output_tokens);
         self.push_timeline(event, "usage", "usage", 0.5);
+        self.topology
+            .activate("core", event.seq, TopologyLevel::Active, "usage updated");
     }
 
     fn apply_latency(&mut self, event: &AgentEvent) {
@@ -370,6 +536,13 @@ impl State {
             &format!("{ms}ms"),
             (ms as f64 / 1_200.0).clamp(0.2, 1.0),
         );
+        let level = if ms > 700 {
+            TopologyLevel::Warning
+        } else {
+            TopologyLevel::Active
+        };
+        self.topology
+            .activate("core", event.seq, level, &format!("latency {ms}ms"));
     }
 
     fn apply_state_transition(&mut self, event: &AgentEvent) {
@@ -380,6 +553,8 @@ impl State {
         let node_id = format!("state:{to}");
         self.ensure_node(&node_id, to, "state", 1.0);
         self.ensure_edge("agent", &node_id, 0.7);
+        self.topology
+            .activate("agent", event.seq, TopologyLevel::Active, to);
     }
 
     fn push_log(&mut self, event: &AgentEvent, level: &str, message: &str) {
@@ -446,7 +621,175 @@ impl State {
         trim_front(&mut self.retrievals, 30);
         trim_graph(&mut self.graph);
         trim_tools(&mut self.active_tools);
+        trim_front(&mut self.topology.changes, MAX_TOPOLOGY_CHANGES);
     }
+}
+
+impl TopologyRuntime {
+    fn configured() -> Self {
+        let mut topology = TopologyRuntime {
+            nodes: HashMap::new(),
+            edges: HashMap::new(),
+            changes: Vec::new(),
+        };
+        topology.add_node("agent", "Agent", "actor", 12.0, 44.0, "waiting for events");
+        topology.add_node("retrieval", "Retrieval", "dependency", 34.0, 20.0, "idle");
+        topology.add_node("tools", "Tools", "dependency", 34.0, 58.0, "idle");
+        topology.add_node("core", "Rust core", "core", 58.0, 44.0, "source of truth");
+        topology.add_node("stream", "Event stream", "stream", 76.0, 44.0, "idle");
+        topology.add_node(
+            "browser",
+            "Browser",
+            "surface",
+            91.0,
+            44.0,
+            "projection surface",
+        );
+        topology.add_edge("agent", "retrieval", "query");
+        topology.add_edge("agent", "core", "intent");
+        topology.add_edge("core", "tools", "call");
+        topology.add_edge("retrieval", "core", "trace");
+        topology.add_edge("tools", "core", "result");
+        topology.add_edge("core", "stream", "project");
+        topology.add_edge("stream", "browser", "render");
+        topology
+    }
+
+    fn add_node(&mut self, id: &str, label: &str, kind: &str, x: f64, y: f64, summary: &str) {
+        self.nodes.insert(
+            id.to_string(),
+            TopologyNodeRuntime {
+                id: id.to_string(),
+                label: label.to_string(),
+                kind: kind.to_string(),
+                x,
+                y,
+                last_seq: 0,
+                level: TopologyLevel::Idle,
+                summary: summary.to_string(),
+            },
+        );
+    }
+
+    fn add_edge(&mut self, source: &str, target: &str, label: &str) {
+        self.edges.insert(
+            edge_key(source, target),
+            TopologyEdgeRuntime {
+                source: source.to_string(),
+                target: target.to_string(),
+                count: 0,
+                last_seq: 0,
+                level: TopologyLevel::Idle,
+                label: label.to_string(),
+            },
+        );
+    }
+
+    fn activate(&mut self, id: &str, seq: u64, level: TopologyLevel, summary: &str) {
+        if let Some(node) = self.nodes.get_mut(id) {
+            node.last_seq = seq;
+            node.level = level;
+            node.summary = summary.to_string();
+            self.record_change(seq, id, level, summary);
+        }
+    }
+
+    fn flow(&mut self, source: &str, target: &str, seq: u64, level: TopologyLevel, label: &str) {
+        let key = edge_key(source, target);
+        if let Some(edge) = self.edges.get_mut(&key) {
+            edge.last_seq = seq;
+            edge.count += 1;
+            edge.level = level;
+            edge.label = label.to_string();
+        }
+    }
+
+    fn project(&self, current_seq: u64) -> TopologyProjection {
+        let mut nodes: Vec<TopologyNode> = self
+            .nodes
+            .values()
+            .map(|node| TopologyNode {
+                id: node.id.clone(),
+                label: node.label.clone(),
+                kind: node.kind.clone(),
+                status: topology_status(node.level, node.last_seq, current_seq).to_string(),
+                x: node.x,
+                y: node.y,
+                last_seq: node.last_seq,
+                summary: node.summary.clone(),
+            })
+            .collect();
+        nodes.sort_by(|a, b| a.x.partial_cmp(&b.x).unwrap_or(std::cmp::Ordering::Equal));
+
+        let mut edges: Vec<TopologyEdge> = self
+            .edges
+            .values()
+            .map(|edge| TopologyEdge {
+                source: edge.source.clone(),
+                target: edge.target.clone(),
+                status: topology_status(edge.level, edge.last_seq, current_seq).to_string(),
+                count: edge.count,
+                last_seq: edge.last_seq,
+                label: edge.label.clone(),
+            })
+            .collect();
+        edges.sort_by(|a, b| a.source.cmp(&b.source).then(a.target.cmp(&b.target)));
+
+        TopologyProjection {
+            nodes,
+            edges,
+            changes: self.changes.clone(),
+        }
+    }
+
+    fn record_change(&mut self, seq: u64, component: &str, level: TopologyLevel, message: &str) {
+        self.changes.push(TopologyChange {
+            seq,
+            component: component.to_string(),
+            level: level.as_str().to_string(),
+            message: message.to_string(),
+        });
+        trim_front(&mut self.changes, MAX_TOPOLOGY_CHANGES);
+    }
+}
+
+impl TopologyLevel {
+    fn as_str(self) -> &'static str {
+        match self {
+            TopologyLevel::Idle => "idle",
+            TopologyLevel::Active => "active",
+            TopologyLevel::Warning => "warning",
+            TopologyLevel::Failed => "failed",
+        }
+    }
+}
+
+fn topology_status(level: TopologyLevel, last_seq: u64, current_seq: u64) -> &'static str {
+    if level == TopologyLevel::Failed {
+        return "failed";
+    }
+    if last_seq == 0 {
+        return "idle";
+    }
+    let age = current_seq.saturating_sub(last_seq);
+    if level == TopologyLevel::Warning && age <= 12 {
+        return "warning";
+    }
+    if age <= 3 {
+        "active"
+    } else if age >= 18 {
+        "stale"
+    } else {
+        "idle"
+    }
+}
+
+fn edge_key(source: &str, target: &str) -> String {
+    format!("{source}->{target}")
+}
+
+fn eventless_change_seq(seq: u64) -> u64 {
+    seq.saturating_add(1)
 }
 
 fn parse_event(event_json: &str) -> Result<AgentEvent, String> {
@@ -611,5 +954,88 @@ mod tests {
         let value: Value = serde_json::from_str(&response).unwrap();
         assert_eq!(value["ok"], true);
         assert_eq!(value["projection"]["phase"], "drafting");
+    }
+
+    #[test]
+    fn topology_marks_event_flow_active() {
+        let mut state = State::default();
+        state.ingest(event(
+            1,
+            EventKind::Retrieval,
+            json!({ "source": "README", "query": "flow", "score": 0.82, "status": "hit" }),
+        ));
+
+        let topology = state.projection().topology;
+        let retrieval = topology
+            .nodes
+            .iter()
+            .find(|node| node.id == "retrieval")
+            .unwrap();
+        let edge = topology
+            .edges
+            .iter()
+            .find(|edge| edge.source == "agent" && edge.target == "retrieval")
+            .unwrap();
+        assert_eq!(retrieval.status, "active");
+        assert_eq!(edge.status, "active");
+        assert_eq!(edge.count, 1);
+    }
+
+    #[test]
+    fn topology_marks_failure_and_retry() {
+        let mut state = State::default();
+        state.ingest(event(1, EventKind::Retry, json!({ "reason": "backoff" })));
+        state.ingest(event(
+            2,
+            EventKind::Failure,
+            json!({ "message": "tool timeout" }),
+        ));
+
+        let topology = state.projection().topology;
+        let core_to_tools = topology
+            .edges
+            .iter()
+            .find(|edge| edge.source == "core" && edge.target == "tools")
+            .unwrap();
+        let tools = topology
+            .nodes
+            .iter()
+            .find(|node| node.id == "tools")
+            .unwrap();
+        assert_eq!(core_to_tools.status, "warning");
+        assert_eq!(tools.status, "failed");
+    }
+
+    #[test]
+    fn topology_marks_old_activity_stale() {
+        let mut state = State::default();
+        state.ingest(event(1, EventKind::Thinking, json!({ "message": "plan" })));
+        state.ingest(event(
+            24,
+            EventKind::Usage,
+            json!({ "input_tokens": 1, "output_tokens": 1 }),
+        ));
+
+        let topology = state.projection().topology;
+        let agent = topology
+            .nodes
+            .iter()
+            .find(|node| node.id == "agent")
+            .unwrap();
+        assert_eq!(agent.status, "stale");
+    }
+
+    #[test]
+    fn topology_changes_are_bounded() {
+        let mut state = State::default();
+        for seq in 1..40 {
+            state.ingest(event(
+                seq,
+                EventKind::Thinking,
+                json!({ "message": "tick" }),
+            ));
+        }
+
+        assert!(state.projection().topology.changes.len() <= MAX_TOPOLOGY_CHANGES);
     }
 }
