@@ -1,0 +1,15 @@
+{
+  "name": "@spool/worker-shell",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc --noEmit",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "hono": "^4.7.10"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.2.13"
+  }
+}

@@ -6,3 +6,18 @@
 
 # Codex droppings
 .codex
+
+# JavaScript / frontend
+node_modules/
+dist/
+.vite/
+
+# Rust
+target/
+
+# Generated WASM package
+app/generated/
+
+# Local runtime
+.wrangler/
+.dev.vars
