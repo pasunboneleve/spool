@@ -9,15 +9,21 @@
   --failed: #a94b47;
   --stale: #7c8580;
   --idle: #b8b1a5;
-  --space-1: clamp(0.35rem, 0.4vw, 0.55rem);
-  --space-2: clamp(0.65rem, 0.7vw, 0.95rem);
-  --space-3: clamp(1rem, 1.1vw, 1.35rem);
-  --space-4: clamp(1.35rem, 1.8vw, 2rem);
+  --space-1: 0.45rem;
+  --space-2: 0.8rem;
+  --space-3: 1.15rem;
+  --space-4: 1.75rem;
   --radius: 0.35rem;
   color: var(--ink);
   background: var(--paper);
   font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  font-size: clamp(14px, 0.92vw, 17px);
+}
+
+html {
+  background: var(--paper);
+  font-size: 16px;
+  overflow-y: scroll;
+  scrollbar-gutter: stable;
 }
 
 * {
@@ -55,7 +61,7 @@ body {
 
 h1 {
   font-family: ui-serif, Georgia, "Times New Roman", serif;
-  font-size: clamp(2rem, 5.6vw, 5.4rem);
+  font-size: 5rem;
   font-weight: 500;
   letter-spacing: 0;
   line-height: 0.95;
@@ -105,11 +111,12 @@ h2 {
 .metric-strip {
   display: grid;
   gap: 1px;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
   border-block: 1px solid var(--rule);
 }
 
 .metric-strip article {
+  block-size: 5rem;
   min-inline-size: 0;
   padding: var(--space-2) var(--space-3);
 }
@@ -123,11 +130,14 @@ h2 {
 .metric-strip strong {
   display: block;
   font-family: ui-serif, Georgia, "Times New Roman", serif;
-  font-size: clamp(1.45rem, 2vw, 2.25rem);
+  font-size: 1.8rem;
   font-weight: 500;
+  font-variant-numeric: tabular-nums;
   line-height: 1.1;
   margin-top: 0.15rem;
-  overflow-wrap: anywhere;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .workspace {
@@ -320,11 +330,16 @@ h2 {
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
 }
 
+.detail-grid .panel {
+  block-size: 14rem;
+}
+
 .tokens,
 .event-list,
 .table-list {
   min-block-size: 0;
   overflow: auto;
+  scrollbar-gutter: stable;
 }
 
 .tokens {
@@ -457,11 +472,19 @@ h2 {
   .legend {
     justify-content: start;
   }
+
+  h1 {
+    font-size: 3.25rem;
+  }
 }
 
 @media (max-width: 42rem) {
   .shell {
     padding: var(--space-3);
+  }
+
+  h1 {
+    font-size: 2.25rem;
   }
 
   .row {
