@@ -1,5 +1,7 @@
 # Spool
 
+[![CI](https://github.com/pasunboneleve/spool/actions/workflows/ci.yml/badge.svg)](https://github.com/pasunboneleve/spool/actions/workflows/ci.yml)
+
 Spool is a local-first prototype for a Cloudflare-style realtime blog that visualises AI-agent activity while keeping domain logic in compiler-checked Rust.
 
 The browser is a projection surface, not the source of truth. It renders projections from Rust and local connection state only.
@@ -18,7 +20,20 @@ Mock agent (Rust)
 
 ## Local startup
 
-Install the local prerequisites once:
+## System dependencies
+
+Install these tools before running the project on a new machine:
+
+- Git.
+- Rust and Cargo through `rustup`.
+- Rust target `wasm32-unknown-unknown`.
+- `wasm-pack` `0.14.x`.
+- Bun `1.3.x`.
+- Chromium or Chrome, optional, for headless visual checks when DevTools MCP cannot launch a browser.
+
+Wrangler, TypeScript, Vite, Hono, and D3 are project dependencies installed by Bun.
+
+Install the Rust target and JavaScript dependencies once:
 
 ```sh
 rustup target add wasm32-unknown-unknown
