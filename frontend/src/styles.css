@@ -151,7 +151,9 @@ canvas {
   font-size: 18px;
   line-height: 1.5;
   margin: 0;
+  max-height: 280px;
   min-height: 120px;
+  overflow: auto;
   overflow-wrap: anywhere;
 }
 

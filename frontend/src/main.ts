@@ -147,6 +147,7 @@ function renderProjection(next: Projection) {
   els.retries.textContent = formatNumber(next.totals.retries);
   els.phase.textContent = next.phase;
   els.tokens.textContent = next.tokens.map((token) => token.text).join("");
+  els.tokens.scrollTop = els.tokens.scrollHeight;
   els.retrievals.innerHTML = next.retrievals
     .slice(-5)
     .reverse()
