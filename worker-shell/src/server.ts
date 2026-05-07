@@ -12,6 +12,8 @@ const app = new Hono();
 const clients = new Set<ServerWebSocket<unknown>>();
 const engineReady = createEngine();
 let lastProjection: unknown = null;
+let mockAgent: Bun.Subprocess<"ignore", "pipe", "pipe"> | null = null;
+let shuttingDown = false;
 
 app.get("/health", async (c) => {
   const engine = await engineReady;
@@ -61,6 +63,7 @@ console.log(`[worker] listening on http://localhost:${server.port}`);
 
 const engine = await engineReady;
 startMockAgent(engine);
+installShutdownHandlers();
 
 async function createEngine() {
   const wasmUrl = new URL("../../app/generated/rust-core/rust_core_bg.wasm", import.meta.url);
@@ -72,21 +75,25 @@ async function createEngine() {
 function startMockAgent(engine: Engine) {
   const proc = Bun.spawn(["cargo", "run", "-q", "-p", "mock-agent"], {
     cwd: new URL("../..", import.meta.url).pathname,
+    stdin: "ignore",
     stdout: "pipe",
     stderr: "pipe"
   });
+  mockAgent = proc;
 
   console.log("[worker] mock-agent started");
-  readLines(proc.stdout, (line) => ingestLine(engine, line));
-  readLines(proc.stderr, (line) => console.error(`[mock-agent] ${line}`));
-
-  proc.exited.then((code) => {
-    console.error(`[worker] mock-agent exited with code ${code}`);
+  readLines(proc.stdout, (line) => ingestLine(engine, line)).catch((error) => {
+    if (!shuttingDown) console.error("[worker] mock-agent stdout failed", error);
+  });
+  readLines(proc.stderr, (line) => console.error(`[mock-agent] ${line}`)).catch((error) => {
+    if (!shuttingDown) console.error("[worker] mock-agent stderr failed", error);
   });
 
-  const stop = () => proc.kill();
-  process.on("SIGINT", stop);
-  process.on("SIGTERM", stop);
+  proc.exited.then((code) => {
+    if (!shuttingDown) {
+      console.error(`[worker] mock-agent exited with code ${code}`);
+    }
+  });
 }
 
 async function readLines(stream: ReadableStream<Uint8Array>, onLine: (line: string) => void) {
@@ -123,5 +130,32 @@ function broadcast(message: unknown) {
   const encoded = JSON.stringify(message);
   for (const client of clients) {
     client.send(encoded);
+  }
+}
+
+function installShutdownHandlers() {
+  process.on("SIGINT", () => {
+    shutdown("SIGINT").finally(() => process.exit(130));
+  });
+  process.on("SIGTERM", () => {
+    shutdown("SIGTERM").finally(() => process.exit(143));
+  });
+}
+
+async function shutdown(signal: NodeJS.Signals) {
+  if (shuttingDown) return;
+  shuttingDown = true;
+  console.log(`[worker] shutting down (${signal})`);
+
+  for (const client of clients) {
+    client.close();
+  }
+  clients.clear();
+  server.stop(true);
+
+  if (mockAgent) {
+    mockAgent.kill("SIGTERM");
+    await Promise.race([mockAgent.exited, Bun.sleep(1_000)]);
+    mockAgent.kill("SIGKILL");
   }
 }
