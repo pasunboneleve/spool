@@ -4,11 +4,11 @@
   --ink: #1f2623;
   --muted: #66736d;
   --rule: #d8d1c3;
-  --active: #2f7d64;
-  --warning: #a36a00;
-  --failed: #a94b47;
-  --stale: #7c8580;
-  --idle: #b8b1a5;
+  --active: #3f7d6a;
+  --failed: #a45650;
+  --stale: #82847c;
+  --idle: #b7b0a3;
+  --warn: #a17624;
   --space-1: 0.45rem;
   --space-2: 0.8rem;
   --space-3: 1.15rem;
@@ -39,7 +39,7 @@ body {
   display: grid;
   gap: var(--space-3);
   margin-inline: auto;
-  max-width: 118rem;
+  max-width: 112rem;
   min-height: 100vh;
   padding: var(--space-4);
 }
@@ -61,7 +61,7 @@ body {
 
 h1 {
   font-family: ui-serif, Georgia, "Times New Roman", serif;
-  font-size: 5rem;
+  font-size: 4.5rem;
   font-weight: 500;
   letter-spacing: 0;
   line-height: 0.95;
@@ -96,27 +96,45 @@ h2 {
 }
 
 #status-dot {
-  background: var(--warning);
+  background: var(--warn);
 }
 
-#status-dot.live {
+#status-dot.live,
+.legend .active i,
+.map-node.active circle {
   background: var(--active);
+  fill: var(--active);
 }
 
 #status-dot.error,
-#status-dot.reconnecting {
+#status-dot.reconnecting,
+.legend .failed i,
+.map-node.failed circle {
   background: var(--failed);
+  fill: var(--failed);
+}
+
+.legend .stale i,
+.map-node.stale circle {
+  background: var(--stale);
+  fill: var(--stale);
+}
+
+.legend .idle i,
+.map-node.idle circle {
+  background: var(--idle);
+  fill: var(--idle);
 }
 
 .metric-strip {
+  border-block: 1px solid var(--rule);
   display: grid;
   gap: 1px;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
-  border-block: 1px solid var(--rule);
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr));
 }
 
 .metric-strip article {
-  block-size: 5rem;
+  block-size: 4.8rem;
   min-inline-size: 0;
   padding: var(--space-2) var(--space-3);
 }
@@ -130,9 +148,9 @@ h2 {
 .metric-strip strong {
   display: block;
   font-family: ui-serif, Georgia, "Times New Roman", serif;
-  font-size: 1.8rem;
-  font-weight: 500;
+  font-size: 1.75rem;
   font-variant-numeric: tabular-nums;
+  font-weight: 500;
   line-height: 1.1;
   margin-top: 0.15rem;
   overflow: hidden;
@@ -141,11 +159,11 @@ h2 {
 }
 
 .workspace {
-  --topology-block-size: clamp(34rem, 64vh, 48rem);
+  --topology-block-size: clamp(33rem, 62vh, 45rem);
   align-items: stretch;
   display: grid;
   gap: var(--space-3);
-  grid-template-columns: minmax(0, 1fr) minmax(min(100%, 22rem), 0.32fr);
+  grid-template-columns: minmax(0, 1fr) minmax(20rem, 0.34fr);
 }
 
 .map-panel,
@@ -156,19 +174,19 @@ h2 {
 }
 
 .map-panel {
+  block-size: var(--topology-block-size);
   display: grid;
   gap: var(--space-2);
   grid-template-rows: auto minmax(0, 1fr);
   min-block-size: 0;
-  block-size: var(--topology-block-size);
   padding: var(--space-3);
 }
 
 .panel {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
-  min-inline-size: 0;
   min-block-size: 0;
+  min-inline-size: 0;
   padding: var(--space-3);
 }
 
@@ -200,76 +218,36 @@ h2 {
   gap: 0.3rem;
 }
 
-.legend .active i,
-.map-node.active circle {
-  fill: var(--active);
-}
-
-.legend .warning i,
-.map-node.warning circle {
-  fill: var(--warning);
-}
-
-.legend .failed i,
-.map-node.failed circle {
-  fill: var(--failed);
-}
-
-.legend .stale i,
-.map-node.stale circle {
-  fill: var(--stale);
-}
-
-.legend .idle i,
-.map-node.idle circle {
-  fill: var(--idle);
-}
-
 #topology {
-  aspect-ratio: 16 / 9;
   block-size: 100%;
   display: block;
   inline-size: 100%;
   min-block-size: 0;
 }
 
-.map-grid line {
+.map-rule line {
   stroke: var(--rule);
-  stroke-width: 0.12;
+  stroke-width: 0.15;
 }
 
-.map-edge line {
+.map-edge path {
+  fill: none;
   stroke: var(--idle);
   stroke-linecap: round;
   stroke-width: 0.34;
 }
 
-.map-edge text {
-  dominant-baseline: central;
-  fill: var(--muted);
-  font-size: 1.45px;
-  paint-order: stroke;
-  stroke: var(--paper);
-  stroke-width: 0.4;
-  text-anchor: middle;
-}
-
-.map-edge.active line {
+.map-edge.active path {
   stroke: var(--active);
-  stroke-width: 0.54;
+  stroke-width: 0.56;
 }
 
-.map-edge.warning line {
-  stroke: var(--warning);
-  stroke-width: 0.54;
-}
-
-.map-edge.failed line {
+.map-edge.failed path {
   stroke: var(--failed);
-  stroke-width: 0.6;
+  stroke-width: 0.64;
 }
 
-.map-edge.stale line {
+.map-edge.stale path {
   stroke: var(--stale);
   stroke-dasharray: 1 1;
 }
@@ -285,7 +263,7 @@ h2 {
 
 .map-node .label {
   fill: var(--ink);
-  font-size: 2px;
+  font-size: 2.2px;
   font-weight: 700;
   paint-order: stroke;
   stroke: var(--paper);
@@ -293,9 +271,9 @@ h2 {
   text-anchor: middle;
 }
 
-.map-node .summary {
+.map-node .annotation {
   fill: var(--muted);
-  font-size: 1.45px;
+  font-size: 1.55px;
   paint-order: stroke;
   stroke: var(--paper);
   stroke-width: 0.42;
@@ -307,7 +285,7 @@ h2 {
     stroke-width: 0.65;
   }
   50% {
-    stroke-width: 1.2;
+    stroke-width: 1.1;
   }
   100% {
     stroke-width: 0.65;
@@ -345,17 +323,17 @@ h2 {
 .tokens {
   color: var(--ink);
   font-family: ui-serif, Georgia, "Times New Roman", serif;
-  font-size: 1.05rem;
+  font-size: 1rem;
   line-height: 1.55;
   margin: var(--space-2) 0 0;
   overflow-wrap: anywhere;
 }
 
 .event-list {
+  align-content: start;
   display: grid;
   gap: 0.45rem;
   margin-top: var(--space-2);
-  align-content: start;
 }
 
 .event-list p {
@@ -375,19 +353,14 @@ h2 {
   margin-right: 0.35rem;
 }
 
-.event-list .warning span,
-.event-list .warn span {
-  color: var(--warning);
+.event-list .warn span,
+.event-list .warn {
+  color: var(--warn);
 }
 
-.event-list .failed span,
-.event-list .error span {
+.event-list .error span,
+.event-list .error {
   color: var(--failed);
-}
-
-.event-list .active span,
-.event-list .info span {
-  color: var(--active);
 }
 
 .table-list {
@@ -419,29 +392,9 @@ h2 {
 }
 
 .row em {
-  color: var(--warning);
+  color: var(--warn);
   font-style: normal;
   font-variant-numeric: tabular-nums;
-}
-
-.sparkline {
-  block-size: clamp(6rem, 14vh, 10rem);
-  inline-size: 100%;
-  margin-top: var(--space-2);
-}
-
-.sparkline-rule {
-  fill: none;
-  stroke: var(--rule);
-  stroke-width: 0.7;
-}
-
-.sparkline-path {
-  fill: none;
-  stroke: var(--active);
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  stroke-width: 1.4;
 }
 
 @media (max-width: 72rem) {
@@ -466,7 +419,7 @@ h2 {
 
   #topology {
     block-size: auto;
-    min-block-size: clamp(22rem, 58vw, 36rem);
+    min-block-size: 32rem;
   }
 
   .legend {
@@ -485,6 +438,18 @@ h2 {
 
   h1 {
     font-size: 2.25rem;
+  }
+
+  #topology {
+    min-block-size: 24rem;
+  }
+
+  .map-node .label {
+    font-size: 3.2px;
+  }
+
+  .map-node .annotation {
+    display: none;
   }
 
   .row {

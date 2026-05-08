@@ -1,22 +1,6 @@
 const root = new URL("..", import.meta.url).pathname;
 const shutdownTimeoutMs = 2_000;
 
-async function runStep(name: string, command: string[]) {
-  console.log(`[dev] ${name}: ${command.join(" ")}`);
-  const proc = Bun.spawn(command, {
-    cwd: root,
-    stdout: "inherit",
-    stderr: "inherit"
-  });
-  const code = await proc.exited;
-  if (code !== 0) {
-    throw new Error(`${name} failed with exit code ${code}`);
-  }
-}
-
-await runStep("build wasm", ["bun", "run", "wasm:build"]);
-await runStep("build mock-agent", ["bun", "run", "mock:build"]);
-
 type ManagedProcess = {
   name: string;
   proc: Bun.Subprocess<"inherit", "inherit", "inherit">;
