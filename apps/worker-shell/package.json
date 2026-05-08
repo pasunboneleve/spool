@@ -8,6 +8,7 @@
   },
   "dependencies": {
     "@spool/core": "workspace:*",
+    "@spool/observability": "workspace:*",
     "hono": "^4.7.10"
   },
   "devDependencies": {

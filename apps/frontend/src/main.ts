@@ -1,21 +1,30 @@
-import type { Article, Projection } from "@spool/core";
+import type { Article, ArticleIndexItem, Projection, SiteConfig } from "@spool/core";
+import type { ObservabilityEvent } from "@spool/observability";
 import "./styles.css";
 import { renderArticle, type RenderedArticle } from "./article-renderer";
 import { registerDefaultVisualisations } from "./viz-registry";
 
 type WorkerFrame =
   | { type: "projection"; projection: Projection }
+  | { type: "observability"; event: ObservabilityEvent }
   | { type: "error"; message: string }
   | { type: "hello"; clients: number };
+
+type SitePayload = {
+  config: SiteConfig;
+  articles: ArticleIndexItem[];
+  default_article: string;
+};
 
 const app = document.querySelector<HTMLDivElement>("#app");
 if (!app) throw new Error("app root missing");
 const appRoot = app;
 
 const workerHttpUrl = import.meta.env.VITE_WORKER_HTTP_URL ?? `http://${location.hostname}:8787`;
-const articleId = new URLSearchParams(location.search).get("article") ?? "compiler-corrected-agent-stream";
+const requestedArticleId = new URLSearchParams(location.search).get("article");
 let renderedArticle: RenderedArticle | null = null;
 const latestProjections = new Map<string, Projection>();
+let latestObservability: ObservabilityEvent[] = [];
 let renderQueued = false;
 let receivedMessages = 0;
 let receivedBytes = 0;
@@ -34,15 +43,29 @@ if (import.meta.env.DEV) {
 async function boot() {
   setLoading();
   try {
+    const site = await loadSite();
+    const articleId = requestedArticleId ?? site.default_article;
     const article = await loadArticle(articleId);
-    renderedArticle = renderArticle(appRoot, article);
+    renderedArticle = renderArticle(appRoot, article, {
+      articles: site.articles,
+      activeArticleId: article.id,
+      defaultArticleId: site.default_article
+    });
     renderedArticle.update(latestProjections);
+    renderedArticle.updateObservability(latestObservability);
     for (const sourceId of articleEventSources(article)) {
       connect(sourceId);
     }
+    connectObservability();
   } catch (error) {
     appRoot.textContent = error instanceof Error ? error.message : String(error);
   }
+}
+
+async function loadSite(): Promise<SitePayload> {
+  const response = await fetch(`${workerHttpUrl}/site`);
+  if (!response.ok) throw new Error(`failed to load site: ${response.status}`);
+  return (await response.json()) as SitePayload;
 }
 
 async function loadArticle(id: string): Promise<Article> {
@@ -85,6 +108,32 @@ function connect(sourceId: string) {
   });
 }
 
+function connectObservability() {
+  const workerUrl = import.meta.env.VITE_WORKER_WS_URL ?? `ws://${location.hostname}:8787/ws`;
+  const url = new URL(workerUrl);
+  url.pathname = "/observability/ws";
+  const ws = new WebSocket(url.toString());
+
+  ws.addEventListener("open", () => setConnection("observability", "live"));
+  ws.addEventListener("message", (event) => {
+    receivedMessages += 1;
+    if (typeof event.data === "string") receivedBytes += event.data.length;
+    const frame = JSON.parse(event.data) as WorkerFrame;
+    if (frame.type === "observability") {
+      latestObservability = [...latestObservability, frame.event].slice(-80);
+      scheduleRender();
+    }
+  });
+  ws.addEventListener("close", () => {
+    setConnection("observability", "reconnecting");
+    window.setTimeout(connectObservability, 900);
+  });
+  ws.addEventListener("error", () => {
+    setConnection("observability", "error");
+    ws.close();
+  });
+}
+
 function scheduleRender() {
   if (renderQueued) return;
   renderQueued = true;
@@ -93,13 +142,15 @@ function scheduleRender() {
     if (!renderedArticle) return;
     const started = performance.now();
     renderedArticle.update(latestProjections);
+    renderedArticle.updateObservability(latestObservability);
     totalRenderMs += performance.now() - started;
     renderCalls += 1;
   });
 }
 
 function articleEventSources(article: Article) {
-  const sources = new Set([article.default_event_source]);
+  const sources = new Set<string>();
+  if (article.default_event_source) sources.add(article.default_event_source);
   for (const block of article.blocks) {
     if (block.kind === "viz") sources.add(block.event_source);
   }

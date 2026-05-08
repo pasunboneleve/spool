@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/pasunboneleve/spool/actions/workflows/ci.yml/badge.svg)](https://github.com/pasunboneleve/spool/actions/workflows/ci.yml)
 
-Spool v0 is a local-first realtime observability prototype for interactive articles. It composes markdown prose, replayable event streams, and live visualisations into a quiet topology and state map.
+Spool v0 is a local-first runtime for interactive technical articles. It composes markdown prose, replayable event streams, local platform observability, and live visualisations into a quiet reading surface.
 
 The browser is a projection surface, not the source of truth.
 
@@ -10,14 +10,16 @@ The browser is a projection surface, not the source of truth.
 
 ```text
 content/articles/*.md
-  -> article model
+  -> article model and article index
 content/events/*.jsonl
   -> event-core reducer and projection
+local platform mock
+  -> provider-neutral observability events
   -> apps/worker-shell WebSocket broadcast
-  -> apps/frontend article renderer and viz registry
+  -> apps/frontend article shell, margins, and viz registry
 ```
 
-The TypeScript event-core owns canonical state, event ordering, totals, retries, failures, topology status, logs, and bounded excerpts. The worker shell handles routing, article loading, event-source replay, WebSocket fanout, and projection broadcast. The frontend renders article blocks, visualisation embeds, projections, and local connection state.
+The TypeScript event-core owns canonical event state, ordering, totals, retries, failures, topology status, logs, and bounded excerpts. The observability package owns provider-neutral platform events, IDs, local sinks, and drills. The worker shell handles routing, article loading, event-source replay, platform instrumentation, WebSocket fanout, and projection broadcast. The frontend renders article blocks, marginal navigation, evidence margins, projections, and local connection state.
 
 Tailwind CSS v4 owns page layout, responsive grids, spacing, typography, panels, metric strips, bounded scroll regions, badges, and table styling. D3 and SVG own topology geometry, node and edge coordinates, path generation, and scale/layout helpers.
 
@@ -33,6 +35,12 @@ packages/core
   topology.ts       core-owned topology status
   fixtures/         replay fixtures
   replay.test.ts    reducer, schema, topology, and golden projection tests
+
+packages/observability
+  event-schema.ts   provider-neutral platform event schema
+  ids.ts            run/session/request/correlation ID helpers
+  sinks/            local memory and JSONL sinks
+  failure-drills.ts local failure drill event generation
 
 apps/worker-shell
   server.ts         Hono/Bun local server
@@ -53,7 +61,7 @@ content/events
   *.jsonl           independent replayable event streams
 ```
 
-See [docs/interactive-article-architecture.md](docs/interactive-article-architecture.md) for the architecture decision, content syntax, event source boundary, visualisation registry, Pretext spike decision, and future Cloudflare mapping.
+See [docs/interactive-article-architecture.md](docs/interactive-article-architecture.md) for the architecture decision, content syntax, event source boundary, visualisation registry, marginal navigation, local observability contract, Pretext spike decision, and future Cloudflare mapping.
 
 ## System dependencies
 
@@ -83,7 +91,7 @@ Then open:
 http://localhost:5173
 ```
 
-The dev command starts the Hono/Bun worker on `localhost:8787` and the Vite frontend on `localhost:5173`. The default article is `compiler-corrected-agent-stream`, loaded from `content/articles`. Keep this session running while editing UI or realtime behaviour. Read its logs after each change instead of starting competing dev servers.
+The dev command starts the Hono/Bun worker on `localhost:8787` and the Vite frontend on `localhost:5173`. `/` resolves to the featured article from `content/site.json`; if no featured article is configured, it resolves to the latest article by frontmatter date. Keep this session running while editing UI or realtime behaviour. Read its logs after each change instead of starting competing dev servers.
 
 ## Validation
 
@@ -194,6 +202,7 @@ Do not treat a clean build as visual validation. The app is only visually valida
 - `apps/worker-shell` maps to a Cloudflare Worker adapter.
 - WebSocket fanout and stateful runs can move to Durable Objects.
 - The mock event generator can be replaced by a real AI-agent event source.
+- Local observability events can map to Workers Logs, Tail Workers, Durable Object logs, OpenTelemetry export, or stored replay files.
 - `packages/core` is the future Rust/WASM replacement point.
 
 The current TypeScript core exists to improve v0 feedback loops. Its event and projection contracts keep the later Rust replacement narrow.

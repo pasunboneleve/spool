@@ -13,6 +13,9 @@ content/articles/*.md
 content/events/*.jsonl
   -> independent replayable event streams
 
+local platform mock
+  -> provider-neutral observability events
+
 event-core
   -> AgentEvent validation, ordering policy, reducer, bounded projection
 
@@ -20,7 +23,7 @@ viz-registry
   -> maps visualisation type plus projection to a renderer
 
 article renderer
-  -> composes prose blocks and visualisation blocks with CSS Grid/Flexbox
+  -> composes prose blocks, visualisation blocks, and marginal evidence surfaces
 ```
 
 Articles may reference event sources and visualisation embeds by ID. Articles do not own event data. Visualisations do not own prose. Visual components receive projections and render them; they do not compute canonical event, topology, retry, failure, token, or phase state.
@@ -36,6 +39,8 @@ Each article starts with flat frontmatter:
 id: compiler-corrected-agent-stream
 title: Compiler-corrected agent stream
 dek: A local-first interactive article.
+date: 2026-05-08
+tags: [agents, observability]
 default_event_source: sample-agent-run
 ---
 ```
@@ -57,7 +62,27 @@ An embed may override the article default event source:
 
 Event streams live in `content/events/*.jsonl`. Each non-empty line is one `AgentEvent` object. The worker shell loads the selected source, validates each line through event-core, and replays it as a paced local stream.
 
-The article renderer does not know which JSONL file exists. It asks the worker for an article model, then connects to `/ws?source=<default_event_source>`.
+The article renderer does not know which JSONL files exist. It asks the worker for an article model, discovers the event source IDs referenced by visualisation embeds, and connects to `/ws?source=<event_source_id>` for each source.
+
+## Article index and default route
+
+The worker derives the article index from markdown metadata. It exposes:
+
+- `/site` for site config, article index, and resolved default article.
+- `/articles` for the index.
+- `/articles/:id` for one parsed article model.
+
+The frontend root route is not a marketing landing page. `/` renders the configured featured article from `content/site.json`. If no featured article exists, it renders the latest article by frontmatter date. A query string can choose another ordinary article:
+
+```text
+/?article=alternate-agent-stream
+```
+
+## Marginal navigation
+
+The left margin is navigation apparatus. It is recessed during reading, exposes a persistent `Articles` tab, expands on hover or focus, and can be pinned open. It contains the article index, evidence indicators, tags, featured marker, and reading progress. Keyboard support covers Tab entry, arrow movement, Home/End, Enter, and Escape.
+
+On narrow screens the article index moves into a drawer opened by an `Articles` button. The drawer scrolls internally and closes with Escape, a close button, or the backdrop.
 
 ## Event-core boundary
 
@@ -87,6 +112,42 @@ The same event source can power multiple embeds. A topology map, metric strip, t
 
 The article renderer uses ordinary CSS Grid and Flexbox first. Prose stays in a readable column. Visualisations sit beside the prose on wide screens and collapse into the article flow on narrow screens. Panels have fixed logical regions and internal scrolling, so streaming tokens and logs do not move the article.
 
+The right margin is evidence apparatus. It shows compact platform observability and event-source evidence. These panels are bounded and scroll internally.
+
+## Local observability contract
+
+`packages/observability` defines provider-neutral platform events:
+
+- `platform_request_started`
+- `platform_request_finished`
+- `platform_request_failed`
+- `websocket_connected`
+- `websocket_closed`
+- `websocket_reconnected`
+- `event_source_started`
+- `event_source_finished`
+- `event_source_failed`
+- `projection_broadcast`
+- `projection_payload_measured`
+- `render_cycle_measured`
+- `model_request_started`
+- `model_request_finished`
+- `model_request_failed`
+- `provider_rate_limited`
+- `provider_timeout`
+
+Each event carries a schema, kind, timestamp, component, correlation ID, and optional run, session, and request IDs. The worker writes events to a bounded in-memory sink and a JSONL sink. The frontend subscribes to `/observability/ws` and renders a bounded platform trace in the evidence margin.
+
+Local endpoints:
+
+```text
+GET  /observability/events
+GET  /observability/jsonl
+POST /drills/:name
+```
+
+Available drills include normal run, malformed event, WebSocket disconnect, model timeout, provider rate limit, failed tool call, failed retrieval, projection payload too large, slow event source, and bursty event source.
+
 ## Pretext spike
 
 Pretext is deferred for v0. The spike did not show enough benefit to justify making it foundational:
@@ -104,4 +165,5 @@ Revisit Pretext when articles need adaptive placement rules that CSS Grid cannot
 - `content/articles` can become static Pages assets or KV/R2-backed content.
 - `content/events` can become fixtures, persisted traces, R2 objects, or Durable Object streams.
 - WebSocket fanout and run state can move to Durable Objects.
+- Observability events can flow to Workers Logs, Tail Workers, Durable Object logs, OpenTelemetry export, or stored replay files.
 - event-core can later move behind a Rust/WASM boundary without changing article syntax or visualisation registry contracts.

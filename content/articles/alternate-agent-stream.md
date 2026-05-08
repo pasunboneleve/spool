@@ -2,6 +2,8 @@
 id: alternate-agent-stream
 title: Alternate agent stream
 dek: The same article structure can point at a different replay source without changing the renderer.
+date: 2026-05-07
+tags: [runtime, replay]
 default_event_source: alternate-agent-run
 ---
 

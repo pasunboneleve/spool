@@ -1,8 +1,10 @@
 import type { Projection } from "@spool/core";
+import type { ObservabilityEvent } from "@spool/observability";
 import type { ServerWebSocket } from "bun";
 
 export type WorkerFrame =
   | { type: "projection"; projection: Projection }
+  | { type: "observability"; event: ObservabilityEvent }
   | { type: "error"; message: string }
   | { type: "hello"; clients: number };
 
@@ -15,7 +17,10 @@ export class ProjectionHub {
   private broadcasts = 0;
   private broadcastBytes = 0;
 
-  constructor(private readonly minBroadcastIntervalMs = 66) {}
+  constructor(
+    private readonly minBroadcastIntervalMs = 66,
+    private readonly onProjectionBroadcast?: (projection: Projection, bytes: number) => void
+  ) {}
 
   get size() {
     return this.clients.size;
@@ -89,11 +94,53 @@ export class ProjectionHub {
     if (frame.type === "projection") {
       this.broadcasts += 1;
       this.broadcastBytes += encoded.length;
+      this.onProjectionBroadcast?.(frame.projection, encoded.length);
     }
     for (const client of this.clients) client.send(encoded);
   }
 }
 
-export type ClientData = {
-  sourceId: string;
-};
+export class ObservabilityHub {
+  private clients = new Set<ServerWebSocket<unknown>>();
+
+  constructor(private readonly snapshot: () => ObservabilityEvent[]) {}
+
+  get size() {
+    return this.clients.size;
+  }
+
+  connect(ws: ServerWebSocket<unknown>) {
+    this.clients.add(ws);
+    ws.send(JSON.stringify({ type: "hello", clients: this.clients.size } satisfies WorkerFrame));
+    for (const event of this.snapshot()) {
+      ws.send(JSON.stringify({ type: "observability", event } satisfies WorkerFrame));
+    }
+  }
+
+  disconnect(ws: ServerWebSocket<unknown>) {
+    this.clients.delete(ws);
+  }
+
+  broadcast(event: ObservabilityEvent) {
+    const encoded = JSON.stringify({ type: "observability", event } satisfies WorkerFrame);
+    for (const client of this.clients) client.send(encoded);
+  }
+
+  closeAll() {
+    for (const client of this.clients) client.close();
+    this.clients.clear();
+  }
+}
+
+export type ClientData =
+  | {
+      kind: "projection";
+      sourceId: string;
+      sessionId: string;
+      correlationId: string;
+    }
+  | {
+      kind: "observability";
+      sessionId: string;
+      correlationId: string;
+    };

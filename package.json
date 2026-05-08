@@ -10,9 +10,9 @@
     "dev": "bun run app/dev.ts",
     "worker:dev": "bun --watch apps/worker-shell/src/server.ts",
     "frontend:dev": "bun run --filter '@spool/frontend' dev",
-    "build": "bun run --filter '@spool/core' build && bun run --filter '@spool/worker-shell' build && bun run --filter '@spool/frontend' build",
-    "typecheck": "bun run --filter '@spool/core' typecheck && bun run --filter '@spool/worker-shell' typecheck && bun run --filter '@spool/frontend' typecheck",
-    "test": "bun run --filter '@spool/core' test",
+    "build": "bun run --filter '@spool/core' build && bun run --filter '@spool/observability' build && bun run --filter '@spool/worker-shell' build && bun run --filter '@spool/frontend' build",
+    "typecheck": "bun run --filter '@spool/core' typecheck && bun run --filter '@spool/observability' typecheck && bun run --filter '@spool/worker-shell' typecheck && bun run --filter '@spool/frontend' typecheck",
+    "test": "bun run --filter '@spool/core' test && bun run --filter '@spool/observability' test",
     "check": "bun run typecheck && bun run test && bun run build"
   },
   "devDependencies": {

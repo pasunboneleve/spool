@@ -20,6 +20,7 @@
       "name": "@spool/frontend",
       "dependencies": {
         "@spool/core": "workspace:*",
+        "@spool/observability": "workspace:*",
         "d3": "^7.9.0",
         "vite": "^6.3.5",
       },
@@ -31,6 +32,7 @@
       "name": "@spool/worker-shell",
       "dependencies": {
         "@spool/core": "workspace:*",
+        "@spool/observability": "workspace:*",
         "hono": "^4.7.10",
       },
       "devDependencies": {
@@ -39,6 +41,15 @@
     },
     "packages/core": {
       "name": "@spool/core",
+      "dependencies": {
+        "zod": "^3.25.76",
+      },
+      "devDependencies": {
+        "vitest": "^3.2.4",
+      },
+    },
+    "packages/observability": {
+      "name": "@spool/observability",
       "dependencies": {
         "zod": "^3.25.76",
       },
@@ -241,6 +252,8 @@
     "@spool/core": ["@spool/core@workspace:packages/core"],
 
     "@spool/frontend": ["@spool/frontend@workspace:apps/frontend"],
+
+    "@spool/observability": ["@spool/observability@workspace:packages/observability"],
 
     "@spool/worker-shell": ["@spool/worker-shell@workspace:apps/worker-shell"],
 

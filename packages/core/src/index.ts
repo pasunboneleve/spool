@@ -1,7 +1,7 @@
 export { agentEventSchema, eventKinds, parseAgentEvent, statusSchema } from "./event-schema";
 export type { AgentEvent, AgentEventKind, Status } from "./event-schema";
-export { articleFrontmatterSchema, parseArticleMarkdown, vizTypeSchema } from "./article";
-export type { Article, ArticleBlock, ArticleFrontmatter, VizType } from "./article";
+export { articleFrontmatterSchema, buildArticleIndex, parseArticleMarkdown, resolveDefaultArticle, vizTypeSchema } from "./article";
+export type { Article, ArticleBlock, ArticleFrontmatter, ArticleIndexItem, SiteConfig, VizType } from "./article";
 export { createEventCore, parseJsonlEvents, replayProjection } from "./event-core";
 export type { EventCore } from "./event-core";
 export { project } from "./projection";

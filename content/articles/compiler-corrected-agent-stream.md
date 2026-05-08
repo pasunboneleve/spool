@@ -2,6 +2,8 @@
 id: compiler-corrected-agent-stream
 title: Compiler-corrected agent stream
 dek: A local-first interactive article where prose, event streams, and visualisations stay independently replaceable.
+date: 2026-05-08
+tags: [agents, observability]
 default_event_source: sample-agent-run
 ---
 
