@@ -1,39 +1,41 @@
 const root = new URL("..", import.meta.url).pathname;
+const frontendRoot = new URL("../apps/frontend/", import.meta.url).pathname;
 const shutdownTimeoutMs = 2_000;
-
-async function runStep(name: string, command: string[]) {
-  console.log(`[dev] ${name}: ${command.join(" ")}`);
-  const proc = Bun.spawn(command, {
-    cwd: root,
-    stdout: "inherit",
-    stderr: "inherit"
-  });
-  const code = await proc.exited;
-  if (code !== 0) {
-    throw new Error(`${name} failed with exit code ${code}`);
-  }
-}
-
-await runStep("build wasm", ["bun", "run", "wasm:build"]);
-await runStep("build mock-agent", ["bun", "run", "mock:build"]);
 
 type ManagedProcess = {
   name: string;
+  command: string[];
+  cwd: string;
   proc: Bun.Subprocess<"inherit", "inherit", "inherit">;
 };
 
 const processes: ManagedProcess[] = [
-  spawnManaged("worker", ["bun", "run", "worker:dev"]),
-  spawnManaged("frontend", ["bun", "run", "frontend:dev"])
+  spawnManaged("worker", ["bun", "--watch", "apps/worker-shell/src/server.ts"]),
+  spawnManaged("frontend", [
+    "node_modules/.bin/vite",
+    "--host",
+    "0.0.0.0",
+    "--port",
+    "5173",
+    "--strictPort"
+  ], frontendRoot)
 ];
 
 let shuttingDown = false;
+let requestedShutdown = false;
 
-function spawnManaged(name: string, command: string[]): ManagedProcess {
+function isExpectedSignalExit(code: number | null) {
+  return code === 130 || code === 143;
+}
+
+function spawnManaged(name: string, command: string[], cwd = root): ManagedProcess {
+  console.log(`[dev] ${name}: ${command.join(" ")}`);
   return {
     name,
+    command,
+    cwd,
     proc: Bun.spawn(command, {
-      cwd: root,
+      cwd,
       stdout: "inherit",
       stderr: "inherit",
       stdin: "ignore",
@@ -60,6 +62,7 @@ async function shutdown(signal: NodeJS.Signals | "exit") {
     for (const { name, proc } of processes) {
       terminateProcessGroup(name, proc, "SIGKILL");
     }
+    await Promise.allSettled(processes.map(({ proc }) => proc.exited));
   }
 }
 
@@ -78,16 +81,26 @@ function terminateProcessGroup(
 }
 
 process.on("SIGINT", () => {
-  shutdown("SIGINT").finally(() => process.exit(130));
+  requestedShutdown = true;
+  shutdown("SIGINT").finally(() => process.exit(0));
 });
 process.on("SIGTERM", () => {
-  shutdown("SIGTERM").finally(() => process.exit(143));
+  requestedShutdown = true;
+  shutdown("SIGTERM").finally(() => process.exit(0));
 });
 
 try {
-  const exitCode = await Promise.race(processes.map(({ proc }) => proc.exited));
+  const exitCode = await Promise.race(processes.map(({ name, command, proc }) => proc.exited.then((code) => {
+    if (isExpectedSignalExit(code)) {
+      requestedShutdown = true;
+    }
+    if (!requestedShutdown && !shuttingDown && code !== 0) {
+      console.error(`[dev] ${name} exited with code ${code}: ${command.join(" ")}`);
+    }
+    return code;
+  })));
   await shutdown("exit");
-  process.exit(exitCode ?? 0);
+  process.exit(requestedShutdown ? 0 : exitCode ?? 0);
 } catch (error) {
   await shutdown("exit");
   throw error;

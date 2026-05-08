@@ -1,0 +1,546 @@
+@import "tailwindcss";
+
+@theme {
+  --color-paper: #fbfaf6;
+  --color-paper-soft: #f3f0e8;
+  --color-ink: #1f2623;
+  --color-muted: #66736d;
+  --color-rule: #d8d1c3;
+  --color-active: #3f7d6a;
+  --color-failed: #a45650;
+  --color-stale: #82847c;
+  --color-idle: #b7b0a3;
+  --color-warn: #a17624;
+  --font-serif: ui-serif, Georgia, "Times New Roman", serif;
+  --radius-panel: 0.35rem;
+}
+
+@layer base {
+  html {
+    @apply overflow-y-scroll bg-paper text-ink;
+    font-size: 16px;
+    scrollbar-gutter: stable;
+  }
+
+  body {
+    @apply m-0 min-w-80 bg-paper font-sans;
+  }
+
+  h1 {
+    @apply m-0 font-serif text-[4.5rem] leading-[0.95] font-medium tracking-normal max-[72rem]:text-[3.25rem] max-[42rem]:text-[2.25rem];
+  }
+
+  h2 {
+    @apply m-0 text-[0.78rem] font-bold uppercase tracking-normal text-ink;
+  }
+}
+
+@layer components {
+  .shell {
+    @apply mx-auto grid min-h-screen max-w-[112rem] gap-[1.15rem] p-7 max-[42rem]:p-[1.15rem];
+  }
+
+  .article-shell {
+    @apply mx-auto grid min-h-screen max-w-[104rem] gap-[1.35rem] px-7 py-8 max-[42rem]:px-[1.15rem] max-[42rem]:py-[1.15rem];
+  }
+
+  .runtime-grid {
+    @apply grid grid-cols-[minmax(0,1fr)_minmax(16rem,0.26fr)] items-start gap-6 max-[72rem]:grid-cols-1;
+  }
+
+  .masthead {
+    @apply grid grid-cols-[minmax(0,1fr)_auto] items-end gap-3 max-[72rem]:grid-cols-1;
+  }
+
+  .article-hero {
+    @apply grid grid-cols-[minmax(0,1fr)_auto] items-end gap-4 border-b border-rule pb-6 max-[54rem]:grid-cols-1;
+  }
+
+  .dek {
+    @apply mt-4 max-w-[54rem] text-[1.1rem] leading-[1.55] text-muted;
+  }
+
+  .article-body {
+    @apply grid grid-cols-[minmax(0,38rem)_minmax(20rem,1fr)] items-start gap-x-8 gap-y-5 max-[58rem]:grid-cols-1;
+  }
+
+  .article-body > h2,
+  .article-body > h3,
+  .article-body > .prose {
+    @apply col-start-1;
+  }
+
+  .article-body > h2 {
+    @apply mt-5 border-t border-rule pt-5 font-serif text-[1.9rem] font-medium normal-case text-ink;
+  }
+
+  .article-body > h3 {
+    @apply mt-3 text-[1rem] font-bold normal-case text-ink;
+  }
+
+  .prose {
+    @apply my-0 max-w-[38rem] text-[1.05rem] leading-[1.7] text-ink;
+  }
+
+  .viz-panel {
+    @apply col-start-2 row-span-2 grid min-h-0 min-w-0 grid-rows-[auto_minmax(0,1fr)] rounded-panel border border-rule bg-white/55 p-[1.15rem] max-[58rem]:col-start-1 max-[58rem]:row-span-1;
+  }
+
+  .marginalia-rail {
+    @apply fixed top-8 bottom-8 left-0 z-30 grid w-[18rem] grid-cols-[2rem_minmax(0,1fr)] transition-transform duration-200 max-[48rem]:hidden;
+    transform: translateX(calc(-100% + 2rem));
+  }
+
+  .marginalia-rail[data-open="true"],
+  .marginalia-rail[data-pinned="true"] {
+    transform: translateX(0);
+  }
+
+  .rail-tab {
+    writing-mode: vertical-rl;
+    @apply rounded-r-panel border-y border-r border-rule bg-paper-soft px-1 py-3 font-serif text-[0.82rem] tracking-normal text-ink;
+  }
+
+  .rail-scroll,
+  .mobile-drawer {
+    @apply min-h-0 overflow-auto border border-rule bg-paper/95 p-4 shadow-sm;
+    scrollbar-gutter: stable;
+  }
+
+  .rail-scroll {
+    @apply rounded-r-panel;
+  }
+
+  .rail-head {
+    @apply sticky top-0 z-10 mb-3 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-rule bg-paper/95 pb-3;
+  }
+
+  .rail-head span {
+    @apply font-serif text-[1rem] text-ink;
+  }
+
+  .rail-pin,
+  .drawer-close,
+  .mobile-index-button {
+    @apply rounded-panel border border-rule bg-paper-soft px-3 py-2 text-[0.78rem] text-ink transition-[background-color,box-shadow,transform,border-color] duration-100;
+    box-shadow: 0 1px 0 rgb(31 38 35 / 0.14);
+  }
+
+  .shell-button {
+    @apply select-none;
+  }
+
+  .shell-button:hover {
+    @apply border-warn bg-white;
+  }
+
+  .shell-button:focus-visible {
+    @apply outline outline-2 outline-offset-2 outline-warn;
+  }
+
+  .shell-button:active,
+  .shell-button[aria-pressed="true"] {
+    background-color: #fff !important;
+    border-color: theme(--color-active) !important;
+    box-shadow: inset 0 1px 2px rgb(31 38 35 / 0.18);
+    transform: translateY(1px) scale(0.99) !important;
+  }
+
+  .shell-button[aria-pressed="true"]:hover {
+    border-color: theme(--color-active) !important;
+  }
+
+  .article-index {
+    @apply grid gap-2;
+  }
+
+  .reading-progress {
+    @apply mb-3 h-1 overflow-hidden rounded-panel bg-rule;
+  }
+
+  .reading-progress i {
+    @apply block h-full bg-warn;
+    width: calc(var(--reading-progress, 0) * 100%);
+  }
+
+  .index-link {
+    @apply grid gap-1 border-l-2 border-rule px-3 py-2 text-ink no-underline hover:border-warn focus:border-warn focus:outline-none;
+  }
+
+  .index-link.active {
+    @apply border-active bg-white/55;
+  }
+
+  .index-link span {
+    @apply font-serif text-[0.98rem] leading-tight;
+  }
+
+  .index-link em,
+  .index-link i,
+  .index-link small {
+    @apply text-[0.72rem] not-italic text-muted;
+  }
+
+  .mobile-index-button {
+    @apply fixed top-3 right-3 z-40 hidden max-[48rem]:block;
+  }
+
+  .mobile-drawer {
+    @apply fixed inset-y-0 left-0 z-50 hidden w-[min(88vw,22rem)] rounded-r-panel max-[48rem]:block;
+    transform: translateX(-105%);
+    transition: transform 180ms ease;
+  }
+
+  .mobile-drawer[aria-hidden="false"] {
+    transform: translateX(0);
+  }
+
+  .drawer-backdrop {
+    @apply fixed inset-0 z-40 bg-ink/15 max-[48rem]:block;
+  }
+
+  .evidence-rail {
+    @apply sticky top-6 grid max-h-[calc(100vh-3rem)] gap-4 overflow-auto max-[72rem]:static max-[72rem]:max-h-none;
+    scrollbar-gutter: stable;
+  }
+
+  .evidence-panel {
+    @apply grid min-h-0 grid-rows-[auto_minmax(0,1fr)] rounded-panel border border-rule bg-white/45 p-4;
+  }
+
+  .evidence-panel:first-child {
+    @apply h-[22rem];
+  }
+
+  .evidence-list {
+    @apply mt-3 grid content-start gap-3 overflow-auto;
+  }
+
+  .evidence-list p {
+    @apply m-0 grid gap-1 border-t border-rule pt-2;
+  }
+
+  .evidence-list strong {
+    @apply text-[0.86rem] text-ink;
+  }
+
+  .evidence-list span,
+  .quiet {
+    @apply text-[0.78rem] text-muted;
+  }
+
+  .viz-panel figcaption {
+    @apply grid gap-1 border-b border-rule pb-3;
+  }
+
+  .viz-panel figcaption strong {
+    @apply text-[0.84rem] uppercase tracking-normal text-ink;
+  }
+
+  .viz-panel figcaption span {
+    @apply text-[0.86rem] leading-[1.45] text-muted;
+  }
+
+  .viz-content {
+    @apply min-h-0 min-w-0 pt-3;
+  }
+
+  .viz-content > .tokens,
+  .viz-content > .event-list {
+    @apply h-full;
+  }
+
+  .viz-topology {
+    @apply h-[min(38rem,65vh)] max-[58rem]:h-[32rem] max-[42rem]:h-96;
+  }
+
+  .viz-metrics,
+  .viz-tokens,
+  .viz-timeline {
+    @apply h-72;
+  }
+
+  .metric-grid {
+    @apply grid h-full grid-cols-[repeat(2,minmax(0,1fr))] content-start gap-px overflow-auto;
+    scrollbar-gutter: stable;
+  }
+
+  .metric-grid article {
+    @apply min-w-0 border-t border-rule px-3 py-3;
+  }
+
+  .metric-grid span {
+    @apply block text-[0.78rem] text-muted;
+  }
+
+  .metric-grid strong {
+    @apply mt-1 block overflow-hidden text-ellipsis whitespace-nowrap font-serif text-[1.55rem] font-medium tabular-nums;
+  }
+
+  .eyebrow {
+    @apply mb-[0.45rem] text-[0.72rem] uppercase tracking-normal text-muted;
+  }
+
+  .connection {
+    @apply inline-flex min-w-30 items-center gap-[0.55rem] rounded-panel border border-rule px-3 py-[0.62rem];
+  }
+
+  #status-dot,
+  .legend i {
+    @apply inline-block size-[0.62rem] rounded-full;
+  }
+
+  #status-dot {
+    @apply bg-warn;
+  }
+
+  #status-dot.live {
+    @apply bg-active;
+  }
+
+  #status-dot.error,
+  #status-dot.reconnecting {
+    @apply bg-failed;
+  }
+
+  .metric-strip {
+    @apply grid grid-cols-[repeat(auto-fit,minmax(min(100%,11rem),1fr))] gap-px border-y border-rule;
+  }
+
+  .metric-strip article {
+    @apply h-[4.8rem] min-w-0 px-[1.15rem] py-3;
+  }
+
+  .metric-strip span {
+    @apply block text-[0.78rem] text-muted;
+  }
+
+  .metric-strip strong {
+    @apply mt-[0.15rem] block overflow-hidden text-ellipsis whitespace-nowrap font-serif text-[1.75rem] leading-[1.1] font-medium tabular-nums;
+  }
+
+  .workspace {
+    --topology-block-size: clamp(33rem, 62vh, 45rem);
+    @apply grid grid-cols-[minmax(0,1fr)_minmax(20rem,0.34fr)] items-stretch gap-[1.15rem] max-[72rem]:grid-cols-1;
+  }
+
+  .map-panel,
+  .panel {
+    @apply rounded-panel border border-rule bg-white/45;
+  }
+
+  .map-panel {
+    @apply grid h-(--topology-block-size) min-h-0 grid-rows-[auto_minmax(0,1fr)] gap-3 p-[1.15rem] max-[72rem]:h-auto;
+  }
+
+  .panel {
+    @apply grid min-h-0 min-w-0 grid-rows-[auto_minmax(0,1fr)] p-[1.15rem];
+  }
+
+  .panel-head {
+    @apply grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3 max-[72rem]:grid-cols-1;
+  }
+
+  .panel-head p {
+    @apply mt-1 mb-0 text-muted;
+  }
+
+  .legend {
+    @apply flex flex-wrap items-center justify-end gap-[0.7rem] max-[72rem]:justify-start;
+  }
+
+  .legend span {
+    @apply inline-flex items-center gap-[0.3rem] text-[0.78rem] text-muted;
+  }
+
+  .legend .active i {
+    @apply bg-active;
+  }
+
+  .legend .failed i {
+    @apply bg-failed;
+  }
+
+  .legend .stale i {
+    @apply bg-stale;
+  }
+
+  .legend .idle i {
+    @apply bg-idle;
+  }
+
+  .side-rail,
+  .detail-grid {
+    @apply grid gap-[1.15rem];
+  }
+
+  .side-rail {
+    @apply h-(--topology-block-size) min-h-0 grid-rows-[minmax(0,1fr)_minmax(0,1fr)] max-[72rem]:h-auto max-[72rem]:grid-rows-[repeat(2,minmax(12rem,18rem))];
+  }
+
+  .detail-grid {
+    @apply grid-cols-[repeat(auto-fit,minmax(min(100%,18rem),1fr))];
+  }
+
+  .detail-grid .panel {
+    @apply h-56;
+  }
+
+  .tokens,
+  .event-list,
+  .table-list {
+    @apply min-h-0 overflow-auto;
+    scrollbar-gutter: stable;
+  }
+
+  .tokens {
+    @apply mt-3 mb-0 overflow-wrap-anywhere font-serif text-base leading-[1.55] text-ink;
+  }
+
+  .event-list {
+    @apply mt-3 grid content-start gap-[0.45rem];
+  }
+
+  .event-list p {
+    @apply m-0 overflow-wrap-anywhere text-ink;
+  }
+
+  .event-list span {
+    @apply mr-[0.45rem] inline-block tabular-nums text-muted;
+  }
+
+  .event-list strong {
+    @apply mr-[0.35rem];
+  }
+
+  .event-list .warn,
+  .event-list .warn span {
+    @apply text-warn;
+  }
+
+  .event-list .error,
+  .event-list .error span {
+    @apply text-failed;
+  }
+
+  .table-list {
+    @apply mt-3 grid gap-px;
+  }
+
+  .row {
+    @apply grid grid-cols-[minmax(7rem,0.55fr)_minmax(0,1fr)_auto] items-baseline gap-[0.45rem] border-t border-rule py-[0.62rem] max-[42rem]:grid-cols-1;
+  }
+
+  .row strong,
+  .row span,
+  .row em {
+    @apply min-w-0 overflow-hidden text-ellipsis whitespace-nowrap max-[42rem]:whitespace-normal;
+  }
+
+  .row span {
+    @apply text-muted;
+  }
+
+  .row em {
+    @apply not-italic tabular-nums text-warn;
+  }
+}
+
+@utility overflow-wrap-anywhere {
+  overflow-wrap: anywhere;
+}
+
+/* SVG topology styling stays here; D3/SVG owns map geometry and paths. */
+#topology {
+  @apply block h-full min-h-0 w-full max-[72rem]:h-auto max-[72rem]:min-h-[32rem] max-[42rem]:min-h-96;
+}
+
+.topology-map {
+  @apply block h-full min-h-0 w-full;
+}
+
+.map-rule line {
+  stroke: theme(--color-rule);
+  stroke-width: 0.15;
+}
+
+.map-edge path {
+  fill: none;
+  stroke: theme(--color-idle);
+  opacity: 0.5;
+  stroke-linecap: round;
+  stroke-width: 0.34;
+}
+
+.map-edge.active path {
+  opacity: 1;
+  stroke: theme(--color-active);
+  stroke-width: 0.56;
+}
+
+.map-edge.failed path {
+  opacity: 1;
+  stroke: theme(--color-failed);
+  stroke-width: 0.64;
+}
+
+.map-edge.stale path {
+  opacity: 0.5;
+  stroke: theme(--color-stale);
+  stroke-dasharray: 1 1;
+}
+
+.map-node circle {
+  opacity: 0.5;
+  stroke: theme(--color-paper);
+  stroke-width: 0.65;
+}
+
+.map-node.active circle {
+  fill: theme(--color-active);
+  opacity: 1;
+}
+
+.map-node.failed circle {
+  fill: theme(--color-failed);
+  opacity: 1;
+}
+
+.map-node.stale circle {
+  fill: theme(--color-stale);
+  opacity: 0.5;
+}
+
+.map-node.idle circle {
+  fill: theme(--color-idle);
+  opacity: 0.5;
+}
+
+.map-node .label {
+  fill: theme(--color-ink);
+  font-size: 2.2px;
+  font-weight: 700;
+  paint-order: stroke;
+  stroke: theme(--color-paper);
+  stroke-width: 0.52;
+  text-anchor: middle;
+}
+
+.map-node .annotation {
+  fill: theme(--color-muted);
+  font-size: 1.55px;
+  paint-order: stroke;
+  stroke: theme(--color-paper);
+  stroke-width: 0.42;
+  text-anchor: middle;
+}
+
+@media (max-width: 42rem) {
+  .map-node .label {
+    font-size: 3.2px;
+  }
+
+  .map-node .annotation {
+    display: none;
+  }
+}

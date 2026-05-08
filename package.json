@@ -3,21 +3,27 @@
   "private": true,
   "type": "module",
   "workspaces": [
-    "worker-shell",
-    "frontend"
+    "packages/*",
+    "apps/*"
   ],
   "scripts": {
     "dev": "bun run app/dev.ts",
-    "wasm:build": "wasm-pack build rust-core --target web --out-dir ../app/generated/rust-core",
-    "mock:build": "cargo build -p mock-agent",
-    "worker:dev": "bun --watch worker-shell/src/server.ts",
+    "worker:dev": "bun --watch apps/worker-shell/src/server.ts",
     "frontend:dev": "bun run --filter '@spool/frontend' dev",
-    "build": "bun run wasm:build && bun run --filter '@spool/frontend' build && bun run --filter '@spool/worker-shell' build",
-    "typecheck": "bun run --filter '@spool/worker-shell' typecheck && bun run --filter '@spool/frontend' typecheck",
-    "check": "bun run typecheck && cargo fmt --check && cargo test --workspace"
+    "build": "bun run --filter '@spool/core' build && bun run --filter '@spool/observability' build && bun run --filter '@spool/worker-shell' build && bun run --filter '@spool/frontend' build",
+    "typecheck": "bun run --filter '@spool/core' typecheck && bun run --filter '@spool/observability' typecheck && bun run --filter '@spool/worker-shell' typecheck && bun run --filter '@spool/frontend' typecheck",
+    "test": "bun run --filter '@spool/core' test && bun run --filter '@spool/observability' test",
+    "check": "bun run typecheck && bun run test && bun run build"
   },
   "devDependencies": {
+    "@tailwindcss/vite": "^4.2.4",
+    "@types/bun": "^1.2.13",
+    "tailwindcss": "^4.2.4",
     "typescript": "^5.9.3",
+    "vitest": "^3.2.4",
     "wrangler": "^4.15.2"
+  },
+  "dependencies": {
+    "zod": "^3.25.76"
   }
 }

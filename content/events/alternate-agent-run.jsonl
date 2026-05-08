@@ -1,0 +1,8 @@
+{"schema":"spool.agent.v1","run_id":"alternate-agent-run","seq":1,"ts_ms":1700002000000,"kind":"state_transition","payload":{"phase":"drafting","message":"drafting alternate article path"}}
+{"schema":"spool.agent.v1","run_id":"alternate-agent-run","seq":2,"ts_ms":1700002000140,"kind":"thinking","payload":{"message":"checking swapped event source"}}
+{"schema":"spool.agent.v1","run_id":"alternate-agent-run","seq":3,"ts_ms":1700002000300,"kind":"tool_call","payload":{"id":"alt-tool","name":"layout probe","status":"started","duration_ms":0}}
+{"schema":"spool.agent.v1","run_id":"alternate-agent-run","seq":4,"ts_ms":1700002000440,"kind":"usage","payload":{"input_tokens":90,"output_tokens":8}}
+{"schema":"spool.agent.v1","run_id":"alternate-agent-run","seq":5,"ts_ms":1700002000580,"kind":"latency","payload":{"ms":132}}
+{"schema":"spool.agent.v1","run_id":"alternate-agent-run","seq":6,"ts_ms":1700002000720,"kind":"token","payload":{"text":"Alternate source, same renderer. "}}
+{"schema":"spool.agent.v1","run_id":"alternate-agent-run","seq":7,"ts_ms":1700002000900,"kind":"tool_call","payload":{"id":"alt-tool","name":"layout probe","status":"succeeded","duration_ms":360}}
+{"schema":"spool.agent.v1","run_id":"alternate-agent-run","seq":8,"ts_ms":1700002001080,"kind":"state_transition","payload":{"phase":"complete","message":"alternate projection broadcast"}}
