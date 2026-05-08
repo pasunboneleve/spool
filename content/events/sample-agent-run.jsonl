@@ -1,0 +1,14 @@
+{"schema":"spool.agent.v1","run_id":"sample-agent-run","seq":1,"ts_ms":1700001000000,"kind":"state_transition","payload":{"phase":"planning","message":"planning local-first response"}}
+{"schema":"spool.agent.v1","run_id":"sample-agent-run","seq":2,"ts_ms":1700001000120,"kind":"thinking","payload":{"message":"reading article context"}}
+{"schema":"spool.agent.v1","run_id":"sample-agent-run","seq":3,"ts_ms":1700001000240,"kind":"retrieval","payload":{"source":"article-frontmatter","query":"default event source","score":0.88,"status":"hit"}}
+{"schema":"spool.agent.v1","run_id":"sample-agent-run","seq":4,"ts_ms":1700001000360,"kind":"retrieval","payload":{"source":"local-cache","query":"recent projection state","score":0.64,"status":"partial"}}
+{"schema":"spool.agent.v1","run_id":"sample-agent-run","seq":5,"ts_ms":1700001000480,"kind":"tool_call","payload":{"id":"fixture-replay","name":"jsonl replay","status":"started","duration_ms":0}}
+{"schema":"spool.agent.v1","run_id":"sample-agent-run","seq":6,"ts_ms":1700001000560,"kind":"usage","payload":{"input_tokens":180,"output_tokens":22}}
+{"schema":"spool.agent.v1","run_id":"sample-agent-run","seq":7,"ts_ms":1700001000640,"kind":"latency","payload":{"ms":184}}
+{"schema":"spool.agent.v1","run_id":"sample-agent-run","seq":8,"ts_ms":1700001000730,"kind":"token","payload":{"text":"Events enter from JSONL. "}}
+{"schema":"spool.agent.v1","run_id":"sample-agent-run","seq":9,"ts_ms":1700001000820,"kind":"token","payload":{"text":"The event core reduces them. "}}
+{"schema":"spool.agent.v1","run_id":"sample-agent-run","seq":10,"ts_ms":1700001000910,"kind":"token","payload":{"text":"The article renders projections. "}}
+{"schema":"spool.agent.v1","run_id":"sample-agent-run","seq":11,"ts_ms":1700001001040,"kind":"retry","payload":{"target":"jsonl replay","reason":"transient stale projection"}}
+{"schema":"spool.agent.v1","run_id":"sample-agent-run","seq":12,"ts_ms":1700001001180,"kind":"tool_call","payload":{"id":"fixture-replay","name":"jsonl replay","status":"succeeded","duration_ms":520}}
+{"schema":"spool.agent.v1","run_id":"sample-agent-run","seq":13,"ts_ms":1700001001320,"kind":"failure","payload":{"component":"retriever","message":"fallback trace missed expected context"}}
+{"schema":"spool.agent.v1","run_id":"sample-agent-run","seq":14,"ts_ms":1700001001480,"kind":"state_transition","payload":{"phase":"complete","message":"projection broadcast"}}

@@ -40,8 +40,94 @@
     @apply mx-auto grid min-h-screen max-w-[112rem] gap-[1.15rem] p-7 max-[42rem]:p-[1.15rem];
   }
 
+  .article-shell {
+    @apply mx-auto grid min-h-screen max-w-[88rem] gap-[1.35rem] px-7 py-8 max-[42rem]:px-[1.15rem] max-[42rem]:py-[1.15rem];
+  }
+
   .masthead {
     @apply grid grid-cols-[minmax(0,1fr)_auto] items-end gap-3 max-[72rem]:grid-cols-1;
+  }
+
+  .article-hero {
+    @apply grid grid-cols-[minmax(0,1fr)_auto] items-end gap-4 border-b border-rule pb-6 max-[54rem]:grid-cols-1;
+  }
+
+  .dek {
+    @apply mt-4 max-w-[54rem] text-[1.1rem] leading-[1.55] text-muted;
+  }
+
+  .article-body {
+    @apply grid grid-cols-[minmax(0,38rem)_minmax(20rem,1fr)] items-start gap-x-8 gap-y-5 max-[58rem]:grid-cols-1;
+  }
+
+  .article-body > h2,
+  .article-body > h3,
+  .article-body > .prose {
+    @apply col-start-1;
+  }
+
+  .article-body > h2 {
+    @apply mt-5 border-t border-rule pt-5 font-serif text-[1.9rem] font-medium normal-case text-ink;
+  }
+
+  .article-body > h3 {
+    @apply mt-3 text-[1rem] font-bold normal-case text-ink;
+  }
+
+  .prose {
+    @apply my-0 max-w-[38rem] text-[1.05rem] leading-[1.7] text-ink;
+  }
+
+  .viz-panel {
+    @apply col-start-2 row-span-2 grid min-h-0 min-w-0 grid-rows-[auto_minmax(0,1fr)] rounded-panel border border-rule bg-white/55 p-[1.15rem] max-[58rem]:col-start-1 max-[58rem]:row-span-1;
+  }
+
+  .viz-panel figcaption {
+    @apply grid gap-1 border-b border-rule pb-3;
+  }
+
+  .viz-panel figcaption strong {
+    @apply text-[0.84rem] uppercase tracking-normal text-ink;
+  }
+
+  .viz-panel figcaption span {
+    @apply text-[0.86rem] leading-[1.45] text-muted;
+  }
+
+  .viz-content {
+    @apply min-h-0 min-w-0 pt-3;
+  }
+
+  .viz-content > .tokens,
+  .viz-content > .event-list {
+    @apply h-full;
+  }
+
+  .viz-topology {
+    @apply h-[min(38rem,65vh)] max-[58rem]:h-[32rem] max-[42rem]:h-96;
+  }
+
+  .viz-metrics,
+  .viz-tokens,
+  .viz-timeline {
+    @apply h-72;
+  }
+
+  .metric-grid {
+    @apply grid h-full grid-cols-[repeat(2,minmax(0,1fr))] content-start gap-px overflow-auto;
+    scrollbar-gutter: stable;
+  }
+
+  .metric-grid article {
+    @apply min-w-0 border-t border-rule px-3 py-3;
+  }
+
+  .metric-grid span {
+    @apply block text-[0.78rem] text-muted;
+  }
+
+  .metric-grid strong {
+    @apply mt-1 block overflow-hidden text-ellipsis whitespace-nowrap font-serif text-[1.55rem] font-medium tabular-nums;
   }
 
   .eyebrow {
@@ -220,6 +306,10 @@
 /* SVG topology styling stays here; D3/SVG owns map geometry and paths. */
 #topology {
   @apply block h-full min-h-0 w-full max-[72rem]:h-auto max-[72rem]:min-h-[32rem] max-[42rem]:min-h-96;
+}
+
+.topology-map {
+  @apply block h-full min-h-0 w-full;
 }
 
 .map-rule line {

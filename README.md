@@ -2,21 +2,22 @@
 
 [![CI](https://github.com/pasunboneleve/spool/actions/workflows/ci.yml/badge.svg)](https://github.com/pasunboneleve/spool/actions/workflows/ci.yml)
 
-Spool v0 is a local-first realtime observability prototype for an interactive blog. It shows live AI-agent activity as a quiet topology and state map.
+Spool v0 is a local-first realtime observability prototype for interactive articles. It composes markdown prose, replayable event streams, and live visualisations into a quiet topology and state map.
 
 The browser is a projection surface, not the source of truth.
 
 ## Architecture
 
 ```text
-mock event stream
-  -> packages/core reducer
-  -> packages/core projection
+content/articles/*.md
+  -> article model
+content/events/*.jsonl
+  -> event-core reducer and projection
   -> apps/worker-shell WebSocket broadcast
-  -> apps/frontend SVG renderer
+  -> apps/frontend article renderer and viz registry
 ```
 
-The TypeScript core owns canonical state, event ordering, totals, retries, failures, topology status, logs, and bounded excerpts. The worker shell handles routing, WebSocket fanout, mock event generation, and projection broadcast. The frontend renders projections plus local connection state.
+The TypeScript event-core owns canonical state, event ordering, totals, retries, failures, topology status, logs, and bounded excerpts. The worker shell handles routing, article loading, event-source replay, WebSocket fanout, and projection broadcast. The frontend renders article blocks, visualisation embeds, projections, and local connection state.
 
 Tailwind CSS v4 owns page layout, responsive grids, spacing, typography, panels, metric strips, bounded scroll regions, badges, and table styling. D3 and SVG own topology geometry, node and edge coordinates, path generation, and scale/layout helpers.
 
@@ -24,6 +25,8 @@ Tailwind CSS v4 owns page layout, responsive grids, spacing, typography, panels,
 
 ```text
 packages/core
+  article.ts        markdown/frontmatter article model parser
+  event-core.ts     JSONL replay and reducer boundary
   event-schema.ts   AgentEvent v1 schema
   reducer.ts        canonical state transitions
   projection.ts     read model for the UI
@@ -34,13 +37,23 @@ packages/core
 apps/worker-shell
   server.ts         Hono/Bun local server
   websocket.ts      WebSocket fanout
-  mock-agent.ts     deterministic mock event stream
+  mock-agent.ts     paced local event-source replay
 
 apps/frontend
-  src/main.ts       thin projection renderer
+  src/main.ts       article boot and WebSocket adapter
+  src/article-renderer.ts
+  src/viz-registry.ts
   src/topology-view.ts
   src/styles.css    Tailwind v4 design system plus scoped SVG map styling
+
+content/articles
+  *.md              prose plus semantic visualisation embeds
+
+content/events
+  *.jsonl           independent replayable event streams
 ```
+
+See [docs/interactive-article-architecture.md](docs/interactive-article-architecture.md) for the architecture decision, content syntax, event source boundary, visualisation registry, Pretext spike decision, and future Cloudflare mapping.
 
 ## System dependencies
 
@@ -70,7 +83,7 @@ Then open:
 http://localhost:5173
 ```
 
-The dev command starts the Hono/Bun worker on `localhost:8787` and the Vite frontend on `localhost:5173`. Keep this session running while editing UI or realtime behaviour. Read its logs after each change instead of starting competing dev servers.
+The dev command starts the Hono/Bun worker on `localhost:8787` and the Vite frontend on `localhost:5173`. The default article is `compiler-corrected-agent-stream`, loaded from `content/articles`. Keep this session running while editing UI or realtime behaviour. Read its logs after each change instead of starting competing dev servers.
 
 ## Validation
 

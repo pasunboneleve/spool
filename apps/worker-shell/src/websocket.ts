@@ -93,3 +93,7 @@ export class ProjectionHub {
     for (const client of this.clients) client.send(encoded);
   }
 }
+
+export type ClientData = {
+  sourceId: string;
+};
