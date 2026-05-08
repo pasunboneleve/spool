@@ -44,6 +44,25 @@ describe("core reducer and projection", () => {
     expect(projection.topology.nodes.find((node) => node.id === "tool-runner")?.status).toBe("failed");
   });
 
+  it("keeps active topology emphasis scoped to the latest component event", () => {
+    const afterRetrieval = replay(normalRun.slice(0, 3));
+    expect(afterRetrieval.topology.nodes.find((node) => node.id === "retriever")?.status).toBe("active");
+    expect(afterRetrieval.topology.nodes.find((node) => node.id === "worker-shell")?.status).toBe("idle");
+    expect(afterRetrieval.topology.edges.find((edge) => edge.from === "retriever" && edge.to === "mock-agent")?.status).toBe(
+      "active"
+    );
+
+    const afterTool = replay(normalRun.slice(0, 4));
+    expect(afterTool.topology.nodes.find((node) => node.id === "retriever")?.status).toBe("idle");
+    expect(afterTool.topology.nodes.find((node) => node.id === "tool-runner")?.status).toBe("active");
+    expect(afterTool.topology.edges.find((edge) => edge.from === "retriever" && edge.to === "mock-agent")?.status).toBe(
+      "idle"
+    );
+    expect(afterTool.topology.edges.find((edge) => edge.from === "tool-runner" && edge.to === "mock-agent")?.status).toBe(
+      "active"
+    );
+  });
+
   it("bounds retrieval traces", () => {
     const projection = replay(retrievalHeavyRun);
     expect(projection.totals.retrievals).toBe(14);
