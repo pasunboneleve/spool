@@ -92,13 +92,6 @@ exports[`core reducer and projection > projects a normal run 1`] = `
   "phase": "complete",
   "recent_changes": [
     {
-      "kind": "state_transition",
-      "label": "planning the answer",
-      "level": "info",
-      "seq": 1,
-      "ts_ms": 1700000000001,
-    },
-    {
       "kind": "thinking",
       "label": "reading local context",
       "level": "info",

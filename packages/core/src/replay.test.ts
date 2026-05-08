@@ -47,8 +47,8 @@ describe("core reducer and projection", () => {
   it("bounds retrieval traces", () => {
     const projection = replay(retrievalHeavyRun);
     expect(projection.totals.retrievals).toBe(14);
-    expect(projection.retrievals).toHaveLength(12);
-    expect(projection.retrievals[0]?.seq).toBe(3);
+    expect(projection.retrievals).toHaveLength(8);
+    expect(projection.retrievals[0]?.seq).toBe(7);
   });
 
   it("bounds token excerpts without losing totals", () => {

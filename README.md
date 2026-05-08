@@ -18,6 +18,8 @@ mock event stream
 
 The TypeScript core owns canonical state, event ordering, totals, retries, failures, topology status, logs, and bounded excerpts. The worker shell handles routing, WebSocket fanout, mock event generation, and projection broadcast. The frontend renders projections plus local connection state.
 
+Tailwind CSS v4 owns page layout, responsive grids, spacing, typography, panels, metric strips, bounded scroll regions, badges, and table styling. D3 and SVG own topology geometry, node and edge coordinates, path generation, and scale/layout helpers.
+
 ## Repository layout
 
 ```text
@@ -37,7 +39,7 @@ apps/worker-shell
 apps/frontend
   src/main.ts       thin projection renderer
   src/topology-view.ts
-  src/styles.css
+  src/styles.css    Tailwind v4 design system plus scoped SVG map styling
 ```
 
 ## System dependencies
@@ -48,7 +50,7 @@ Install these tools before running the project on a new machine:
 - Bun `1.3.x`.
 - Chromium or Chrome, optional, for rendered-page checks when DevTools MCP cannot launch a browser.
 
-Wrangler, TypeScript, Vite, Hono, D3, zod, and vitest are project dependencies installed by Bun. Rust, WASM, wasm-pack, and wasm-bindgen are not used in v0.
+Wrangler, TypeScript, Vite, Tailwind CSS v4, Hono, D3, zod, and vitest are project dependencies installed by Bun. Rust, WASM, wasm-pack, and wasm-bindgen are not used in v0.
 
 Install dependencies once:
 

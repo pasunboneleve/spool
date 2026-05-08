@@ -8,6 +8,8 @@ const hub = new ProjectionHub();
 let state: CoreState = createInitialState();
 const mockAbort = new AbortController();
 let shuttingDown = false;
+let eventsReceived = 0;
+let lastPerfLogAt = performance.now();
 
 app.get("/health", (c) =>
   c.json({
@@ -33,7 +35,7 @@ const server = Bun.serve({
   websocket: {
     open(ws) {
       hub.connect(ws);
-      console.log(`[worker] client connected (${hub.size})`);
+      logVerbose(`[worker] client connected (${hub.size})`);
     },
     message(ws, message) {
       if (message === "snapshot" && hub.snapshot) {
@@ -42,18 +44,20 @@ const server = Bun.serve({
     },
     close(ws) {
       hub.disconnect(ws);
-      console.log(`[worker] client disconnected (${hub.size})`);
+      logVerbose(`[worker] client disconnected (${hub.size})`);
     }
   }
 });
 
 console.log(`[worker] listening on http://localhost:${server.port}`);
 installShutdownHandlers();
+setInterval(logPerf, 5_000);
 void pumpMockAgent();
 
 async function pumpMockAgent() {
   try {
     for await (const event of createMockAgent(mockAbort.signal)) {
+      eventsReceived += 1;
       const parsed = parseAgentEvent(event);
       state = reduceEvent(state, parsed);
       hub.broadcastProjection(project(state));
@@ -82,4 +86,23 @@ async function shutdown(signal: NodeJS.Signals) {
   hub.closeAll();
   server.stop(true);
   await Bun.sleep(25);
+}
+
+function logPerf() {
+  const now = performance.now();
+  const elapsedSeconds = Math.max((now - lastPerfLogAt) / 1_000, 0.001);
+  const stats = hub.takeStats();
+  console.info(
+    `[worker:perf] events=${(eventsReceived / elapsedSeconds).toFixed(1)}/s broadcast=${(
+      stats.broadcasts / elapsedSeconds
+    ).toFixed(1)}/s payload=${Math.round(stats.bytes / elapsedSeconds)}B/s clients=${hub.size}`
+  );
+  eventsReceived = 0;
+  lastPerfLogAt = now;
+}
+
+function logVerbose(message: string) {
+  if (process.env.SPOOL_VERBOSE === "1") {
+    console.log(message);
+  }
 }

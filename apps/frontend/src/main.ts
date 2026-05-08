@@ -94,8 +94,20 @@ const els = {
   log: must("#log")
 };
 
+const renderedCollectionLimit = 8;
+let latestProjection: Projection | null = null;
+let renderQueued = false;
+let receivedMessages = 0;
+let receivedBytes = 0;
+let renderCalls = 0;
+let totalRenderMs = 0;
+let lastPerfLogAt = performance.now();
+
 renderLegend();
 connect();
+if (import.meta.env.DEV) {
+  window.setInterval(logPerf, 5_000);
+}
 
 function connect() {
   setConnection("connecting");
@@ -108,8 +120,15 @@ function connect() {
   });
 
   ws.addEventListener("message", (event) => {
+    receivedMessages += 1;
+    if (typeof event.data === "string") {
+      receivedBytes += event.data.length;
+    }
     const frame = JSON.parse(event.data) as WorkerFrame;
-    if (frame.type === "projection") renderProjection(frame.projection);
+    if (frame.type === "projection") {
+      latestProjection = frame.projection;
+      scheduleRender();
+    }
     if (frame.type === "error") renderError(frame.message);
   });
 
@@ -121,6 +140,19 @@ function connect() {
   ws.addEventListener("error", () => {
     setConnection("error");
     ws.close();
+  });
+}
+
+function scheduleRender() {
+  if (renderQueued) return;
+  renderQueued = true;
+  window.requestAnimationFrame(() => {
+    renderQueued = false;
+    if (!latestProjection) return;
+    const started = performance.now();
+    renderProjection(latestProjection);
+    totalRenderMs += performance.now() - started;
+    renderCalls += 1;
   });
 }
 
@@ -151,7 +183,7 @@ function renderProjection(projection: Projection) {
 
 function renderChanges(projection: Projection) {
   els.changes.innerHTML = projection.recent_changes
-    .slice()
+    .slice(-renderedCollectionLimit)
     .reverse()
     .map((change) => `<p class="${change.level}"><span>#${change.seq}</span><strong>${change.kind}</strong>${escapeHtml(change.label)}</p>`)
     .join("");
@@ -159,7 +191,7 @@ function renderChanges(projection: Projection) {
 
 function renderRetrievals(projection: Projection) {
   els.retrievals.innerHTML = projection.retrievals
-    .slice()
+    .slice(-renderedCollectionLimit)
     .reverse()
     .map(
       (trace) => `
@@ -175,6 +207,7 @@ function renderRetrievals(projection: Projection) {
 
 function renderTools(projection: Projection) {
   els.toolList.innerHTML = projection.active_tools
+    .slice(0, renderedCollectionLimit)
     .map(
       (tool) => `
         <div class="row">
@@ -189,7 +222,9 @@ function renderTools(projection: Projection) {
 
 function renderErrors(projection: Projection) {
   const retryLines = projection.timeline.filter((item) => item.kind === "retry").slice(-4);
-  const errorLines = projection.errors.map((error, index) => ({ seq: projection.last_seq - index, label: error }));
+  const errorLines = projection.errors
+    .slice(-4)
+    .map((error, index) => ({ seq: projection.last_seq - index, label: error }));
   els.errors.innerHTML = [
     ...errorLines.map((error) => `<p class="error"><span>#${error.seq}</span>${escapeHtml(error.label)}</p>`),
     ...retryLines.reverse().map((retry) => `<p class="warn"><span>#${retry.seq}</span>${escapeHtml(retry.label)}</p>`)
@@ -198,10 +233,26 @@ function renderErrors(projection: Projection) {
 
 function renderLog(projection: Projection) {
   els.log.innerHTML = projection.log
-    .slice()
+    .slice(-renderedCollectionLimit)
     .reverse()
     .map((item) => `<p class="${item.level}"><span>#${item.seq}</span><strong>${item.kind}</strong>${escapeHtml(item.label)}</p>`)
     .join("");
+}
+
+function logPerf() {
+  const now = performance.now();
+  const elapsedSeconds = Math.max((now - lastPerfLogAt) / 1_000, 0.001);
+  const averageRenderMs = renderCalls > 0 ? totalRenderMs / renderCalls : 0;
+  console.info(
+    `[frontend:perf] received=${(receivedMessages / elapsedSeconds).toFixed(1)}/s render=${(
+      renderCalls / elapsedSeconds
+    ).toFixed(1)}/s avgRender=${averageRenderMs.toFixed(2)}ms payload=${Math.round(receivedBytes / elapsedSeconds)}B/s`
+  );
+  receivedMessages = 0;
+  receivedBytes = 0;
+  renderCalls = 0;
+  totalRenderMs = 0;
+  lastPerfLogAt = now;
 }
 
 function renderError(message: string) {

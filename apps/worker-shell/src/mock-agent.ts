@@ -20,9 +20,15 @@ export async function* createMockAgent(signal: AbortSignal): MockAgent {
       if (signal.aborted) return;
       seq = event.seq;
       yield event;
-      await Bun.sleep(event.kind === "token" ? 110 : 420);
+      await Bun.sleep(delayFor(event));
     }
   }
+}
+
+function delayFor(event: AgentEvent) {
+  if (event.kind === "token") return 90;
+  if (event.kind === "latency" || event.kind === "usage") return 120;
+  return 170;
 }
 
 function cycle(runId: string, startSeq: number, startTs: number): AgentEvent[] {

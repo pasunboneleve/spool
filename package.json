@@ -16,7 +16,9 @@
     "check": "bun run typecheck && bun run test && bun run build"
   },
   "devDependencies": {
+    "@tailwindcss/vite": "^4.2.4",
     "@types/bun": "^1.2.13",
+    "tailwindcss": "^4.2.4",
     "typescript": "^5.9.3",
     "vitest": "^3.2.4",
     "wrangler": "^4.15.2"

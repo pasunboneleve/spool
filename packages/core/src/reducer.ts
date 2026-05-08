@@ -116,7 +116,7 @@ export function reduceEvent(state: CoreState, event: AgentEvent): CoreState {
     case "retrieval":
       next.phase = "retrieving";
       next.totals.retrievals += 1;
-      boundedPush(next.retrievals, { ...event.payload, seq: event.seq }, 12);
+      boundedPush(next.retrievals, { ...event.payload, seq: event.seq }, 8);
       appendInfo(next, event, `${event.payload.source}: ${event.payload.query}`);
       break;
     case "tool_call":
@@ -150,7 +150,7 @@ export function reduceEvent(state: CoreState, event: AgentEvent): CoreState {
     case "latency":
       next.latency.current_ms = event.payload.ms;
       next.latency.max_ms = Math.max(next.latency.max_ms, event.payload.ms);
-      boundedPush(next.latency.samples, { seq: event.seq, ts_ms: event.ts_ms, ms: event.payload.ms }, 40);
+      boundedPush(next.latency.samples, { seq: event.seq, ts_ms: event.ts_ms, ms: event.payload.ms }, 24);
       appendInfo(next, event, `latency ${event.payload.ms}ms`);
       break;
     case "state_transition":
@@ -182,9 +182,9 @@ function appendError(state: CoreState, event: AgentEvent, label: string) {
 
 function appendTimeline(state: CoreState, event: AgentEvent, label: string, level: TimelineItem["level"]) {
   const item = { seq: event.seq, ts_ms: event.ts_ms, kind: event.kind, label, level };
-  boundedPush(state.timeline, item, 32);
-  boundedPush(state.log, item, 24);
-  boundedPush(state.recent_changes, item, 10);
+  boundedPush(state.timeline, item, 16);
+  boundedPush(state.log, item, 12);
+  boundedPush(state.recent_changes, item, 8);
 }
 
 function boundedPush<T>(target: T[], item: T, max: number) {
