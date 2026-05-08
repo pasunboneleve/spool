@@ -18,13 +18,13 @@ export function renderArticle(root: HTMLElement, article: Article, context: Arti
   const shell = document.createElement("main");
   shell.className = "article-shell";
   shell.innerHTML = `
-    <button class="mobile-index-button" type="button" aria-controls="mobile-drawer" aria-expanded="false">Articles</button>
+    <button class="shell-button mobile-index-button" type="button" aria-controls="mobile-drawer" aria-expanded="false">Articles</button>
     <aside class="marginalia-rail" aria-label="Article index" data-open="false" data-pinned="false">
-      <button class="rail-tab" type="button" aria-expanded="false">Articles</button>
+      <button class="shell-button rail-tab" type="button" aria-expanded="false">Articles</button>
       <div class="rail-scroll" tabindex="-1">
         <div class="rail-head">
           <span>Index</span>
-          <button class="rail-pin" type="button" aria-pressed="false">Pin</button>
+          <button class="shell-button rail-pin" type="button" aria-pressed="false">Pin</button>
         </div>
         <div class="reading-progress" aria-label="Reading progress"><i></i></div>
         <nav class="article-index">${renderArticleIndex(context)}</nav>
@@ -34,7 +34,7 @@ export function renderArticle(root: HTMLElement, article: Article, context: Arti
     <aside id="mobile-drawer" class="mobile-drawer" aria-label="Article index" aria-hidden="true">
       <div class="rail-head">
         <span>Articles</span>
-        <button class="drawer-close" type="button">Close</button>
+        <button class="shell-button drawer-close" type="button">Close</button>
       </div>
       <nav class="article-index">${renderArticleIndex(context)}</nav>
     </aside>
